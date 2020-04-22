@@ -1,8 +1,14 @@
+# excluimos archivos sin extension
 *
 !/**/
 !*.*
 
-# exclusiones particulares
+# directorios
+/.vscode
+/testing
+/things
+
+# particulares
 *.o
 *.zip
 *.txt
