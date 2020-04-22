@@ -1,0 +1,16 @@
+*
+!/**/
+!*.*
+
+# exclusiones particulares
+*.o
+*.zip
+*.txt
+
+# cpplint
+cpplint.py
+execute.sh
+filter_options
+
+
+
