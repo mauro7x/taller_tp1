@@ -4,53 +4,41 @@
 // --------------------------------------------------------
 // includes
 #include <stdbool.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-// #include <unistd.h> que hace esta?
-
-// defines
-#define _POSIX_C_SOURCE 200112L
+#include <stdio.h>
 
 // --------------------------------------------------------
-// structs
+// estructuras
+
+typedef struct addrinfo addrinfo_t;
 
 typedef struct socket {
 	int state;
     bool connected;
+    struct addrinfo* addresses_to_try;
     // flags de estado, etc
+
 } socket_t;
 
 // --------------------------------------------------------
-// functions
+// declaraciones
 
-/*  PRE: direccion de variable de tipo socket_t existe
-    POST: 0 == el socket se inicializa correctamente; -1 == error
-*/
-int socket_create(socket_t *self);
+int socket_create(socket_t* self);
 
-/*  PRE: socket previamente inicializado, hostname al que se desea
-    conectar, puerto o servicio que se desea utilizar.
-    POST: 0 == se realiza la conexion, -1 == error
-*/
-int socket_connect(socket_t *self, const char* hostname, const char* port);
+int socket_connect(socket_t* self, const char* hostname, const char* port); // client-side
 
-/*  PRE:
-    POST:
-*/
+int socket_get_addresses(socket_t *self, const char* hostname, const char* port);
+
+int socket_accept(socket_t* self, socket_t* accepted_socket); // server-side
+
+int socket_bind(socket_t self, const char* port); // server-side
+
 int socket_send(socket_t *self, char *buffer, size_t len);
 
-/*  PRE:
-    POST:
-*/
 int socket_recv(socket_t *self, char *buffer, size_t len);
 
-/*  PRE: socket inicializado
-    POST: socket destruido, recursos liberados
-*/
+int socket_shutdown(socket_t *self);
+
 int socket_destroy(socket_t *self);
-
-
 
 // --------------------------------------------------------
 #endif // __SOCKET_H__

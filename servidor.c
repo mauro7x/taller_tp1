@@ -10,6 +10,8 @@ Servidor
 
 // --------------------------------------------------------
 // includes
+#include <stdio.h>
+#include "socket.h"
 
 // defines
 

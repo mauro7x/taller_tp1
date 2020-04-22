@@ -1,40 +1,72 @@
-/*
-
-TP1 - Taller de Programacion II - 1C 2020
-    * Alumno: Mauro Parafati
-    * Repositorio: <link>
-    
-Cliente
-
-*/
-
-// --------------------------------------------------------
 // includes
+#include "client.h"
 
-// defines
+#include <stdio.h>
 
+// --------------------------------------------------------
+// definiciones
+
+FILE* client_get_input(int argc, const char* argv[]) {
+    if (argc == 3) {        // significa que no tenemos input_file
+        return stdin;
+    } else {                // significa que tenemos input_file
+        return fopen(argv[3], "r");
+    }
+}
 
 // --------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-    /*
-    PSEUDO CODIGO IDEA:
+int client_create(client_t* self, int argc, const char* argv[]) {
+    self->hostname = argv[1];
+    self->port = argv[2];
 
-    1. Establecer conexion con el server.
-        1.1. Parsear <hostname> y <port>.
-        1.2.
+    // creamos el socket
+    socket_t socket;
+    socket_create(&socket);
+    self->socket = socket;
 
-    2. Parsear entrada, generar calls de a una.
-        2.1. 
-        
-    3. Enviar call generada al server.
+    // establecemos la entrada
+    FILE* input;
+    if ((input = client_get_input(argc, argv))) {
+        self->input = input;
+    } else {
+        fprintf(stderr, "Error: no se pudo abrir el archivo.\n");
+        return -1;
+    }
 
-    4. Imprimir respuesta server, si hay mas calls volver a 2.
-
-    5. Cerrar conexion con el server.
-
-    6. Terminar ejecucion.
-    
-    */
     return 0;
 }
+
+// --------------------------------------------------------
+
+int client_connect(client_t* self) {
+
+    if (socket_get_addresses(&(self->socket), self->hostname, self->port)) {
+        return -1;
+    }
+
+    if (socket_connect(&(self->socket), self->hostname, self->port)) {
+        return -1;
+    }
+
+    if (!(self->socket.connected)) {
+        fprintf(stderr, "Fallo en la conexion al servidor.\n");
+        return -1;
+    };
+    
+
+    return 0;
+}
+
+// --------------------------------------------------------
+
+
+
+// --------------------------------------------------------
+
+int client_destroy(client_t* self) {
+
+    return 0;
+}
+
+// --------------------------------------------------------
