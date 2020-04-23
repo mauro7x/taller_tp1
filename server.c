@@ -73,7 +73,7 @@ int server_testing_action(server_t* self) {
     }
 
     len = atoi(longitud);
-    printf("Se recibieron %d bytes: [%c, %c]\n", r, longitud[0], longitud[1]);
+    printf("Se recibieron %d bytes: [%d, %d]\n", r, longitud[0], longitud[1]);
     printf("Ahora deberian venir %i bytes.\n", len);
 
     if (len == 0) {
@@ -84,6 +84,7 @@ int server_testing_action(server_t* self) {
     char* tmp = (char*) malloc(sizeof(char) * (len));
     r = socket_recv(&(self->peer_socket), tmp, (size_t) len);
     printf("Bytes recibidos: %d\n", r);
+
     printf("Mensaje recibido: %s\n", tmp);
 
     free(tmp);

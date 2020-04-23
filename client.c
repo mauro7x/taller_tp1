@@ -52,14 +52,19 @@ int client_connect(client_t* self) {
 }
 
 
-int client_send_all(client_t* self) {
+// --------------------------------------------------------
+
+int server_testing_action(client_t* self) {
 
     int sent;
 
     char longitud[2];
-    char* msg = "Mensaje random, aguante bokita";
 
-    unsigned short len = strlen(msg);
+
+    char* msg = "Mensaje random, aguante bokita";
+    unsigned short len = strlen(msg) + 1;
+
+
     sprintf(longitud, "%d", len);
 
     // primero mandamos dos digitos que representan la longitud del proximo mensaje
@@ -83,6 +88,8 @@ int client_send_all(client_t* self) {
     return 0;
 }
 
+// --------------------------------------------------------
+
 
 int client_shutdown(client_t* self) {
     if (socket_shutdown(&(self->socket))) {
@@ -99,3 +106,4 @@ int client_destroy(client_t* self) {
 }
 
 // --------------------------------------------------------
+

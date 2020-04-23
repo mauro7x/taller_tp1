@@ -18,12 +18,6 @@ int main(int argc, const char *argv[]) {
     /*
     PSEUDO CODIGO IDEA:
 
-    0. Chequear que la entrada ingresada sea correcta.
-    
-    1. Establecer conexion con el server.
-        1.1. Parsear <hostname> y <port>.
-        1.2.
-
     2. Parsear entrada, generar calls de a una.
         2.1. 
         
@@ -31,14 +25,8 @@ int main(int argc, const char *argv[]) {
 
     4. Imprimir respuesta server, si hay mas calls volver a 2.
 
-    5. Cerrar conexion con el server.
-
-    6. Terminar ejecucion.
     */
 
-
-    // Formato de entrada:
-    // ./client <host> <port> [<input_file>]
 
     if ((argc < 3) || (argc > 4)) {
         fprintf(stderr, "Usage error. Usage: ./client <host> <port> [<input_file>]\n");
@@ -61,7 +49,7 @@ int main(int argc, const char *argv[]) {
     // hacemos algo y despues sigue el curso
     // vamos a enviar un mensaje
 
-    if (client_send_all(&client)) {
+    if (server_testing_action(&client)) {
         client_destroy(&client);
         return SEND_ERROR;
     }

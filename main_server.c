@@ -17,24 +17,13 @@ int main(int argc, const char *argv[]) {
     /*
     PSEUDO CODIGO IDEA:
 
-    1. Iniciar servidor, a la escucha de conexiones.
-        1.1. Abrir servidor en el puerto especificado.
-        1.2.
-
     2. Procesar cada call recibida.
         2.1. Procesamiento de call.
         ...
         2.n-1. Enviar OK al cliente en caso de ejecucion correcta.
         2.n. Imprimir por stdout la salida pedida.
 
-    3. Cerrar conexion.
-
-    4. Terminar ejecucion.
-    
     */
-
-    // Formato de entrada:
-    // ./server <port>
 
     if (argc != 2) {
         fprintf(stderr, "Usage error. Usage: ./server <port>\n");
@@ -77,7 +66,6 @@ int main(int argc, const char *argv[]) {
     }
 
     return 0;
-
 }
 
 // --------------------------------------------------------
