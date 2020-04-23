@@ -4,12 +4,16 @@
 
 #include "funciones.h"
 #include "client.h"
-#include "socket.h"
+// #include "socket.h"
 
 // defines
 #define USAGE_ERROR 1           // problemas con el uso de la aplicacion
 #define CREATE_ERROR 2          // problemas con la apertura del archivo
 #define CONNECT_ERROR 3         // problemas con la conexion del cliente
+#define SEND_ERROR 4            // problemas con el envio de los calls
+
+#define SHUTDOWN_ERROR 10       // problemas con el shutdown
+#define DESTROY_ERROR 11        // problemas al destruir el cliente
 
 
 // --------------------------------------------------------
@@ -40,7 +44,7 @@ int main(int argc, const char *argv[]) {
     // Formato de entrada:
     // ./client <host> <port> [<input_file>]
 
-    if (uso_incorrecto_cliente(argc, argv)) {
+    if (uso_incorrecto_cliente(argc)) {
         fprintf(stderr, "Error en el uso. Uso: ./client <host> <port> [<input_file>]\n");
         return USAGE_ERROR;
     }
@@ -55,50 +59,27 @@ int main(int argc, const char *argv[]) {
         return CONNECT_ERROR;
     }
 
- 
-    
+    // --------------------------------------------------------
+    // para este punto, tenemos que estar conectados
+    // hacemos algo y despues sigue el curso
+    // vamos a enviar un mensaje
 
-
-
-    client_destroy(&client);
-    
-    
-
-    
-
-
-    
-
-
-/*
-    const char* hostname = argv[1];
-    const char* port = argv[2];
-
-
-    socket_t socket;
-
-    if (socket_create(&socket)) {
-        fprintf(stderr, "Error en socket_create: referencia invalida.\n");
-        return ERROR_SOCKET_CREATE;
+    if (client_send_all(&client)) {
+        return SEND_ERROR;
     }
 
-    socket_get_addresses(&socket, hostname, port);
-    socket_connect(&socket, hostname, port);
-
-    // intentamos hacer un saludin
-    int sent;
-    char* buff = "Estoy enviando un msj random.\n";
-
-    sent = socket_send(&socket, buff, strlen(buff));
-    printf("Se enviaron %d bytes.\n", sent);
-
-    socket_shutdown(&socket);
-
-    if (socket_destroy(&socket)) {
-        fprintf(stderr, "Error en socket_destroy.\n");
-        return ERROR_SOCKET_DESTROY;
+    // --------------------------------------------------------
+    
+    if (client_shutdown(&client)) {
+        return SHUTDOWN_ERROR;
     }
 
-*/
+    if (client_destroy(&client)) {
+        return DESTROY_ERROR;
+    }
+    
     return 0;
 }
+
+// --------------------------------------------------------
+
