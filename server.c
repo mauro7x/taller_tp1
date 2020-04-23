@@ -12,9 +12,7 @@
 int server_create(server_t* self, const char* argv[]) {
     self->port = argv[1];
 
-    // OJO, PREGUNTAR SI TIENE QUE ADMITIR VARIAS CONEXIONES SIMULANTEAS.
-    // EN ESTE CASO DEBERIAMOS TENER UN SOCKET ACEPTOR, Y N SOCKETS PEER.
-
+    // socket aceptador, y socket peer
     socket_t socket, peer_socket;
     socket_create(&socket);
     socket_create(&peer_socket);
@@ -30,8 +28,7 @@ int server_open(server_t* self) {
         return -1;
     }
 
-    if (socket_config_accepter(&(self->socket)
-    )) {
+    if (socket_config_accepter(&(self->socket))) {
         return -1;
     }
 
@@ -97,13 +94,20 @@ int server_testing_action(server_t* self) {
 
 int server_shutdown(server_t* self) {
     if (socket_shutdown(&(self->socket))) {
-        fprintf(stderr, "Error apagando el socket.");
+        fprintf(stderr, "Error in function: socket_shutdown (S)\n");
         return -1;
     }
+
+    if (socket_shutdown(&(self->peer_socket))) {
+        fprintf(stderr, "Error in function: socket_shutdown (P)\n");
+        return -1;
+    }
+
     return 0;
 }
 
 int server_destroy(server_t* self) {
+
     return 0;
 }
 

@@ -1,10 +1,6 @@
 // includes
 #include <stdio.h>
-// #include <string.h>
-
-#include "funciones.h"
 #include "client.h"
-// #include "socket.h"
 
 // defines
 #define USAGE_ERROR 1           // problemas con el uso de la aplicacion
@@ -44,8 +40,8 @@ int main(int argc, const char *argv[]) {
     // Formato de entrada:
     // ./client <host> <port> [<input_file>]
 
-    if (uso_incorrecto_cliente(argc)) {
-        fprintf(stderr, "Error en el uso. Uso: ./client <host> <port> [<input_file>]\n");
+    if ((argc < 3) || (argc > 4)) {
+        fprintf(stderr, "Usage error. Usage: ./client <host> <port> [<input_file>]\n");
         return USAGE_ERROR;
     }
 
@@ -56,6 +52,7 @@ int main(int argc, const char *argv[]) {
     }    
 
     if (client_connect(&client)) {
+        client_destroy(&client);
         return CONNECT_ERROR;
     }
 
@@ -65,12 +62,14 @@ int main(int argc, const char *argv[]) {
     // vamos a enviar un mensaje
 
     if (client_send_all(&client)) {
+        client_destroy(&client);
         return SEND_ERROR;
     }
 
     // --------------------------------------------------------
     
     if (client_shutdown(&client)) {
+        client_destroy(&client);
         return SHUTDOWN_ERROR;
     }
 

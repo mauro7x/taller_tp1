@@ -46,13 +46,7 @@ int client_connect(client_t* self) {
 
     if (socket_connect(&(self->socket), self->hostname, self->port)) {
         return -1;
-    }
-
-    if (!(self->socket.connected)) {
-        fprintf(stderr, "Fallo en la conexion al servidor.\n");
-        return -1;
-    };
-    
+    }   
 
     return 0;
 }

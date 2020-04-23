@@ -26,9 +26,8 @@ int socket_create(socket_t *self) {
     if (!self) {
         return -1;
     }
-    
-    self->state = 0;
-    self->connected = false;
+
+    self->fd = 0;
     return 0;
 }
 
@@ -45,10 +44,9 @@ int socket_get_addresses(socket_t *self, const char* hostname, const char* port,
         hints.ai_flags = 0;                 // Client mode
     }
     
-
     s = getaddrinfo(hostname, port, &hints, &(self->addresses_to_try));
     if (s != 0) { // verificamos que no hayan errores
-        fprintf(stderr, "Error en getaddrinfo: %s\n", gai_strerror(s));
+        fprintf(stderr, "Error in function: getaddrinfo. Error: %s\n", gai_strerror(s));
         freeaddrinfo(self->addresses_to_try);
         return -1;
     }
@@ -60,37 +58,39 @@ int socket_get_addresses(socket_t *self, const char* hostname, const char* port,
 // --------------------------------------------------------
 // server-side functions
 
-int socket_fix_timeout(socket_t* self) {
+static int socket_fix_timeout(socket_t* self) {
     int val = 1;
-    if (setsockopt(self->state, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
-        fprintf(stderr, "Error arreglando el TIMEWAIT.");
-        close(self->state);
-        freeaddrinfo(self->addresses_to_try);
+
+    if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
         return -1;
     }
     return 0;
 }
 
 int socket_config_accepter(socket_t* self) {
-    self->state = socket((self->addresses_to_try)->ai_family, (self->addresses_to_try)->ai_socktype, (self->addresses_to_try)->ai_protocol);
+    self->fd = socket((self->addresses_to_try)->ai_family, (self->addresses_to_try)->ai_socktype, (self->addresses_to_try)->ai_protocol);
 
-    if (self->state == -1) {    // verificamos que no hayan errores en el aceptador
-        printf("Error: %s\n", strerror(errno));
+    if (self->fd == -1) {    // verificamos que no hayan errores en el aceptador
+        fprintf(stderr, "Error in function: socket_config_accepter. Error: %s\n", strerror(errno));
         freeaddrinfo(self->addresses_to_try);
         return -1;
     }
 
     if (socket_fix_timeout(self)) { // arreglamos TIMEWAIT de existir
+        fprintf(stderr, "Error in function: socket_fix_timeout.\n");
+        freeaddrinfo(self->addresses_to_try);
+        close(self->fd);
         return -1;
     }
+
     return 0;
 }
 
 int socket_bind(socket_t* self, const char* port) {
-    if (bind(self->state, (self->addresses_to_try)->ai_addr, (self->addresses_to_try)->ai_addrlen)) {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
-        close(self->state);
+    if (bind(self->fd, (self->addresses_to_try)->ai_addr, (self->addresses_to_try)->ai_addrlen)) {
+        fprintf(stderr, "Error in function: socket_bind. Error: %s\n", strerror(errno));
         freeaddrinfo(self->addresses_to_try);
+        close(self->fd);
         return -1;
     }
 
@@ -99,8 +99,9 @@ int socket_bind(socket_t* self, const char* port) {
 }
 
 int socket_listen(socket_t* self, const int max_clients_in_queue) {
-    if (listen(self->state, max_clients_in_queue)) {
-        fprintf(stderr, "Error en la configuracion del listen del socket.");
+    if (listen(self->fd, max_clients_in_queue)) {
+        fprintf(stderr, "Error in function: socket_listen.\n");
+        close(self->fd);
         return -1;
     }
 
@@ -108,104 +109,88 @@ int socket_listen(socket_t* self, const int max_clients_in_queue) {
 }
 
 int socket_accept(socket_t* self, socket_t* accepted_socket) {
-    
-    accepted_socket->state = accept(self->state, NULL, NULL);
+    accepted_socket->fd = accept(self->fd, NULL, NULL);
 
-    if (accepted_socket->state == -1) {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
+    if (accepted_socket->fd == -1) {
+        fprintf(stderr, "Error in function: socket_accept. Error: %s\n", strerror(errno));
+        close(self->fd);
         return -1;
     }
 
-    self->connected = true;
-    accepted_socket->connected = true;
-
-    fprintf(stdout, "Se ha conectado un cliente!\n");
+    fprintf(stdout, "Se ha conectado un cliente!\n"); // borrar para el release
     return 0;
 }
-
 
 // --------------------------------------------------------
 // client-side functions
 
 int socket_connect(socket_t *self, const char* hostname, const char* port) {
-
+    bool connected = false;
     struct addrinfo* ptr;
-    for (ptr = self->addresses_to_try; ptr != NULL && self->connected == false; ptr = ptr->ai_next) {
-        self->state = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-
-        if (self->state == -1) {
-            fprintf(stderr, "Error: %s\n", strerror(errno));
+    for (ptr = self->addresses_to_try; ptr != NULL && connected == false; ptr = ptr->ai_next) {
+        self->fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        if (self->fd == -1) {
+            fprintf(stderr, "Error in socket_connect. Error: %s\n", strerror(errno));
+            close(self->fd);
+            return -1;
         } else {
-            if (connect(self->state, ptr->ai_addr, ptr->ai_addrlen)) {
-                fprintf(stderr, "Error: %s\n", strerror(errno));
-                close(self->state);
+            if (connect(self->fd, ptr->ai_addr, ptr->ai_addrlen)) {
+                fprintf(stderr, "Error in socket_connect. Error: %s\n", strerror(errno));
+                close(self->fd);
             } else {
-                self->connected = true;
+                connected = true;
             }
         }
     }
 
     freeaddrinfo(self->addresses_to_try); // liberamos la memoria de addresses
-    return 0;
+    return (!connected); // 0 si se conecto, 1 si no
 }
 
 // --------------------------------------------------------
 
 int socket_send(socket_t *self, char *buffer, size_t len) {
-    int sent = 0;
-    int s = 0;
-    bool socket_valid = true;
+    int total_sent = 0;
+    int last_sent = 0;
 
-    while (sent < len && socket_valid) {
-        s = send(self->state, &buffer[sent], len - sent, MSG_NOSIGNAL);
+    while (total_sent < len) {
+        last_sent = send(self->fd, &buffer[total_sent], len - total_sent, MSG_NOSIGNAL);
 
-        if (s == 0) {
-            socket_valid = false;
-        } else if (s == -1) {
-            socket_valid = false;
-        } else {
-            sent += s;
+        if ((last_sent == 0) || (last_sent == -1)) { // el socket fue cerrado o hubo error
+            fprintf(stderr, "Error in function: socket_send.\n");
+            return -1;
+        } else { // se enviaron last_sent bytes.
+            total_sent += last_sent;
         }
     }
 
-    if (socket_valid) {
-        return sent;
-    }
-    else {
-        return -1;
-    }
+    return total_sent;
 }
 
 int socket_recv(socket_t *self, char *buffer, size_t len) {
-    int received = 0;
-    int r = 0;
-    bool socket_valid = true;
+    int total_received = 0;
+    int last_received = 0;
+    
+    while (total_received < len) {
+        last_received = recv(self->fd, &buffer[total_received], len - total_received, 0);
 
-    while (received < len && socket_valid) {
-        r = recv(self->state, &buffer[received], len - received, 0);
-
-        if (r == 0) {
-            socket_valid = false;
-        } else if (r == -1) {
-            socket_valid = false;
+        if ((last_received == 0) || (last_received == -1)) { // el socket fue cerrado o hubo error
+            fprintf(stderr, "Error in function: socket_recv.\n");
+            return -1;
         } else {
-            received += r;
+            total_received += last_received;
         }
     }
 
-    if (socket_valid) {
-        return received;
-    }
-    else {
-        return -1;
-    }
+    return total_received;
 }
 
 int socket_shutdown(socket_t *self) {
-    if (shutdown(self->state, SHUT_RDWR)) {
+    if (shutdown(self->fd, SHUT_RDWR)) {
         return -1;
     }
-    close(self->state);
+
+    close(self->fd);
     return 0;
 }
 

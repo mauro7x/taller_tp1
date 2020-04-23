@@ -12,8 +12,7 @@
 typedef struct addrinfo addrinfo_t;
 
 typedef struct socket {
-	int state;
-    bool connected;
+	int fd; // file descriptor del socket.
     struct addrinfo* addresses_to_try;
     // flags?
 } socket_t;
@@ -27,8 +26,6 @@ int socket_get_addresses(socket_t* self, const char* hostname, const char* port,
 
 // --------------------------------------------------------
 // server-side
-
-int socket_fix_timeout(socket_t* self);
 
 int socket_config_accepter(socket_t* self);
 

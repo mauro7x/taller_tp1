@@ -1,7 +1,5 @@
 // includes
 #include <stdio.h>
-
-#include "funciones.h"
 #include "server.h"
 
 // defines
@@ -38,25 +36,24 @@ int main(int argc, const char *argv[]) {
     // Formato de entrada:
     // ./server <port>
 
-    if (uso_incorrecto_server(argc)) {
-        fprintf(stderr, "Error en el uso. Uso: ./server <port>\n");
+    if (argc != 2) {
+        fprintf(stderr, "Usage error. Usage: ./server <port>\n");
         return USAGE_ERROR;
     }
-
 
     server_t server;
 
     server_create(&server, argv); 
 
-
     if (server_open(&server)) {
+        server_destroy(&server);
         return OPEN_ERROR;
     }
 
     if (server_accept(&server)) {
+        server_destroy(&server);
         return ACCEPT_ERROR;
     }
-
     
     // --------------------------------------------------------
     // para este punto, tenemos que estar conectados
@@ -64,16 +61,16 @@ int main(int argc, const char *argv[]) {
     // vamos a recibir un mensaje
 
     if (server_testing_action(&server)) {
+        server_destroy(&server);
         return TEST_ERROR;
     }
 
     // --------------------------------------------------------
 
-
     if (server_shutdown(&server)) {
+        server_destroy(&server);
         return SHUTDOWN_ERROR;
     }
-
 
     if (server_destroy(&server)) {
         return DESTROY_ERROR;
