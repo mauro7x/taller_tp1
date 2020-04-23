@@ -8,9 +8,8 @@
 // --------------------------------------------------------
 // estructuras
 typedef struct client {
-    const char* hostname;
     const char* port;
-    FILE* input;
+    const char* hostname;
     socket_t socket;
 } client_t;
 
@@ -18,8 +17,6 @@ typedef struct client {
 // declaraciones
 
 int client_create(client_t* self, int argc, const char* argv[]);
-
-FILE* client_get_input(int argc, const char* argv[]);
 
 int client_connect(client_t* self);
 

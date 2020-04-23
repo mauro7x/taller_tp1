@@ -8,32 +8,32 @@
 // --------------------------------------------------------
 // definiciones
 
-FILE* client_get_input(int argc, const char* argv[]) {
-    if (argc == 3) {        // significa que no tenemos input_file
-        return stdin;
-    } else {                // significa que tenemos input_file
-        return fopen(argv[3], "r");
+static int client_set_stdin(int argc, const char* argv[]) {
+    if (argc==4) {
+        FILE *fp;
+        if ((fp = fopen(argv[3], "r")) == NULL) {
+            return -1;
+        }
+        stdin = fp;
     }
+
+    return 0;
 }
 
 
 int client_create(client_t* self, int argc, const char* argv[]) {
     self->hostname = argv[1];
     self->port = argv[2];
-    
-    // creamos el socket
+
     socket_t socket;
     socket_create(&socket);
     self->socket = socket;
 
-    // establecemos la entrada
-    FILE* input;
-    if ((input = client_get_input(argc, argv))) {
-        self->input = input;
-    } else {
-        fprintf(stderr, "Error: no se pudo abrir el archivo.\n");
+    if (client_set_stdin(argc, argv)) {
+        fprintf(stderr, "Error in function: client_set_stdin. Error: no se puede abrir el archivo.");
         return -1;
     }
+
     return 0;
 }
 
@@ -101,7 +101,7 @@ int client_shutdown(client_t* self) {
 
 
 int client_destroy(client_t* self) {
-    fclose(self->input);
+    fclose(stdin);
     return 0;
 }
 

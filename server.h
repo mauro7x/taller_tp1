@@ -9,8 +9,9 @@
 // estructuras
 typedef struct server {
     const char* port;
-    socket_t socket;        // socket aceptador (S)
-    socket_t peer_socket;   // socket correspondiente al cliente (P)
+    const char* hostname;
+    socket_t acceptor;        // socket aceptador (S)
+    socket_t peer;   // socket correspondiente al cliente (P)
 } server_t;
 
 // --------------------------------------------------------

@@ -22,12 +22,10 @@ typedef struct socket {
 
 int socket_create(socket_t* self);
 
-int socket_get_addresses(socket_t* self, const char* hostname, const char* port, bool server);
+int socket_get_addresses(socket_t* self, const char* hostname, const char* port, bool passive);
 
 // --------------------------------------------------------
 // server-side
-
-int socket_config_accepter(socket_t* self);
 
 int socket_bind(socket_t* self, const char* port);
 

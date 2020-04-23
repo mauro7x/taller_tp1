@@ -26,19 +26,19 @@ int socket_create(socket_t *self) {
     if (!self) {
         return -1;
     }
-
     self->fd = 0;
     return 0;
 }
 
-int socket_get_addresses(socket_t *self, const char* hostname, const char* port, bool server) {
+
+int socket_get_addresses(socket_t *self, const char* hostname, const char* port, bool passive) {
     int s; // variable para el manejo de errores
     struct addrinfo hints; // filtros
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;          // IPv4
     hints.ai_socktype = SOCK_STREAM;    // TCP
-    if (server) {
+    if (passive) {
         hints.ai_flags = AI_PASSIVE;        // Server mode
     } else {
         hints.ai_flags = 0;                 // Client mode
@@ -55,28 +55,25 @@ int socket_get_addresses(socket_t *self, const char* hostname, const char* port,
 }
 
 
+static int socket_set_fd(socket_t* self, addrinfo_t* address) {
+    self->fd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
+
+    if (self->fd == -1) { 
+        fprintf(stderr, "Error in function: socket_set_fd. Error: %s\n", strerror(errno));
+        freeaddrinfo(self->addresses_to_try);
+        return -1;
+    }
+
+    return 0;
+}
+
+
 // --------------------------------------------------------
 // server-side functions
 
 static int socket_fix_timeout(socket_t* self) {
     int val = 1;
-
     if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
-        return -1;
-    }
-    return 0;
-}
-
-int socket_config_accepter(socket_t* self) {
-    self->fd = socket((self->addresses_to_try)->ai_family, (self->addresses_to_try)->ai_socktype, (self->addresses_to_try)->ai_protocol);
-
-    if (self->fd == -1) {    // verificamos que no hayan errores en el aceptador
-        fprintf(stderr, "Error in function: socket_config_accepter. Error: %s\n", strerror(errno));
-        freeaddrinfo(self->addresses_to_try);
-        return -1;
-    }
-
-    if (socket_fix_timeout(self)) { // arreglamos TIMEWAIT de existir
         fprintf(stderr, "Error in function: socket_fix_timeout.\n");
         freeaddrinfo(self->addresses_to_try);
         close(self->fd);
@@ -86,7 +83,16 @@ int socket_config_accepter(socket_t* self) {
     return 0;
 }
 
+
 int socket_bind(socket_t* self, const char* port) {
+    if (socket_set_fd(self, self->addresses_to_try)) {
+        return -1;
+    }
+
+    if (socket_fix_timeout(self)) {
+        return -1;
+    }
+
     if (bind(self->fd, (self->addresses_to_try)->ai_addr, (self->addresses_to_try)->ai_addrlen)) {
         fprintf(stderr, "Error in function: socket_bind. Error: %s\n", strerror(errno));
         freeaddrinfo(self->addresses_to_try);
@@ -98,6 +104,7 @@ int socket_bind(socket_t* self, const char* port) {
     return 0;
 }
 
+
 int socket_listen(socket_t* self, const int max_clients_in_queue) {
     if (listen(self->fd, max_clients_in_queue)) {
         fprintf(stderr, "Error in function: socket_listen.\n");
@@ -107,6 +114,7 @@ int socket_listen(socket_t* self, const int max_clients_in_queue) {
 
     return 0;
 }
+
 
 int socket_accept(socket_t* self, socket_t* accepted_socket) {
     accepted_socket->fd = accept(self->fd, NULL, NULL);
@@ -121,31 +129,31 @@ int socket_accept(socket_t* self, socket_t* accepted_socket) {
     return 0;
 }
 
+
 // --------------------------------------------------------
 // client-side functions
 
 int socket_connect(socket_t *self, const char* hostname, const char* port) {
     bool connected = false;
     struct addrinfo* ptr;
+
     for (ptr = self->addresses_to_try; ptr != NULL && connected == false; ptr = ptr->ai_next) {
-        self->fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-        if (self->fd == -1) {
+        if (socket_set_fd(self, ptr)) {
+            return -1;
+        }
+
+        if (connect(self->fd, ptr->ai_addr, ptr->ai_addrlen)) {
             fprintf(stderr, "Error in socket_connect. Error: %s\n", strerror(errno));
             close(self->fd);
-            return -1;
         } else {
-            if (connect(self->fd, ptr->ai_addr, ptr->ai_addrlen)) {
-                fprintf(stderr, "Error in socket_connect. Error: %s\n", strerror(errno));
-                close(self->fd);
-            } else {
-                connected = true;
-            }
+            connected = true;
         }
     }
 
     freeaddrinfo(self->addresses_to_try); // liberamos la memoria de addresses
     return (!connected); // 0 si se conecto, 1 si no
 }
+
 
 // --------------------------------------------------------
 
@@ -167,6 +175,7 @@ int socket_send(socket_t *self, char *buffer, size_t len) {
     return total_sent;
 }
 
+
 int socket_recv(socket_t *self, char *buffer, size_t len) {
     int total_received = 0;
     int last_received = 0;
@@ -185,6 +194,7 @@ int socket_recv(socket_t *self, char *buffer, size_t len) {
     return total_received;
 }
 
+
 int socket_shutdown(socket_t *self) {
     if (shutdown(self->fd, SHUT_RDWR)) {
         return -1;
@@ -194,8 +204,10 @@ int socket_shutdown(socket_t *self) {
     return 0;
 }
 
+
 int socket_destroy(socket_t *self) {
     return 0;
 }
+
 
 // --------------------------------------------------------

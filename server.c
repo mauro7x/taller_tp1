@@ -5,38 +5,36 @@
 
 // defines
 #define MAX_CLIENTS_IN_QUEUE 10
+#define HOSTNAME 0
 
 // --------------------------------------------------------
 // definiciones
 
 int server_create(server_t* self, const char* argv[]) {
     self->port = argv[1];
+    self->hostname = HOSTNAME;
 
     // socket aceptador, y socket peer
     socket_t socket, peer_socket;
     socket_create(&socket);
     socket_create(&peer_socket);
-    self->socket = socket; 
-    self->peer_socket = peer_socket;
+    self->acceptor = socket; 
+    self->peer = peer_socket;
 
     return 0;
 }
 
 int server_open(server_t* self) {
 
-    if (socket_get_addresses(&(self->socket), 0, self->port, true)) {
+    if (socket_get_addresses(&(self->acceptor), self->hostname, self->port, true)) {
         return -1;
     }
 
-    if (socket_config_accepter(&(self->socket))) {
+    if (socket_bind(&(self->acceptor), self->port)) {
         return -1;
     }
 
-    if (socket_bind(&(self->socket), self->port)) {
-        return -1;
-    }
-
-    if (socket_listen(&(self->socket), MAX_CLIENTS_IN_QUEUE)) {
+    if (socket_listen(&(self->acceptor), MAX_CLIENTS_IN_QUEUE)) {
         return -1;
     }
 
@@ -45,7 +43,7 @@ int server_open(server_t* self) {
 }
 
 int server_accept(server_t* self) {
-    if (socket_accept(&(self->socket), &(self->peer_socket))) {
+    if (socket_accept(&(self->acceptor), &(self->peer))) {
         fprintf(stderr, "Error acceptando conexion entrante.");
         return -1;
     }
@@ -65,7 +63,7 @@ int server_testing_action(server_t* self) {
     char longitud[2];
     memset(longitud, 0, 2);
 
-    r = socket_recv(&(self->peer_socket), longitud, 2);
+    r = socket_recv(&(self->peer), longitud, 2);
     // printf("%d", r);
     if (r != 2) {
         fprintf(stdout, "NO SE PUDIERON RECIBIR LOS 2 BYTES DE LONG.");
@@ -82,7 +80,7 @@ int server_testing_action(server_t* self) {
     }
 
     char* tmp = (char*) malloc(sizeof(char) * (len));
-    r = socket_recv(&(self->peer_socket), tmp, (size_t) len);
+    r = socket_recv(&(self->peer), tmp, (size_t) len);
     printf("Bytes recibidos: %d\n", r);
 
     printf("Mensaje recibido: %s\n", tmp);
@@ -94,12 +92,12 @@ int server_testing_action(server_t* self) {
 // --------------------------------------------------------
 
 int server_shutdown(server_t* self) {
-    if (socket_shutdown(&(self->socket))) {
+    if (socket_shutdown(&(self->acceptor))) {
         fprintf(stderr, "Error in function: socket_shutdown (S)\n");
         return -1;
     }
 
-    if (socket_shutdown(&(self->peer_socket))) {
+    if (socket_shutdown(&(self->peer))) {
         fprintf(stderr, "Error in function: socket_shutdown (P)\n");
         return -1;
     }
