@@ -12,35 +12,33 @@
 // --------------------------------------------------------
 // definitions
 
-
-static void call_parameters_parser(call_t* self, char delimiter) {
- 
-    char* string = self->params_string;
-    size_t len = self->params_string_len;
+static size_t call_parameters_counter(char* buffer, size_t len, char delimiter) {
 
     size_t n_params = 1;
+
     for (int i = 0; i < len; i++) { // cuento cuantos hay
-        if (string[i] == delimiter) {
+        if (buffer[i] == delimiter) {
             n_params++;
         }
     }
 
-    param_t* params = (param_t*) malloc(sizeof(param_t)*n_params);
+    return n_params;
+}
 
-    char* current_param;
+static void call_parameters_fill(param_t* params, char* buffer, size_t len, char delimiter) {
     int last_delimiter = 0;
     size_t current_param_len = 0;
     size_t params_added = 0;
 
     for (int i = 0; i < len; i++) {
-        if ((string[i] == delimiter) || (i == len-1)) {
+        if ((buffer[i] == delimiter) || (i == len-1)) {
             if (i == len-1) { // creamos el ultimo parametro
                 current_param_len++;
             }
-            current_param = (char*) malloc(sizeof(char)*(current_param_len));
-            strncpy(current_param, string + last_delimiter, current_param_len);
-            params[params_added].param = current_param;
-            params[params_added].param_len = current_param_len;
+            char* current_param = (char*) malloc(sizeof(char)*(current_param_len));
+            strncpy(current_param, buffer + last_delimiter, current_param_len);
+            params[params_added].string = current_param;
+            params[params_added].len = current_param_len;
             current_param_len = 0;
             params_added++;
             last_delimiter = i+1;
@@ -49,10 +47,17 @@ static void call_parameters_parser(call_t* self, char delimiter) {
             current_param_len++;
         }
     }
+}
+
+static void call_parameters_parser(call_t* self, char* buffer, size_t len, char delimiter) {
+
+    size_t n_params = call_parameters_counter(buffer, len, delimiter);
+    param_t* params = (param_t*) malloc(sizeof(param_t)*n_params);
+    call_parameters_fill(params, buffer, len, delimiter);
 
     self->n_params = n_params;
     self->params = params;
-    free(string);
+    free(buffer);
 }
 
 
@@ -65,13 +70,6 @@ int call_create(call_t* self) {
     if (stdin_streamer_run(&stdin_streamer, self)) {
         return -1; // eof
     }
-    
-    if (self->params_string_len == 0) {
-        self->n_params = 0;
-        self->params = NULL;
-    } else {
-        call_parameters_parser(self, PARAMS_DELIMITER);
-    }
 
     stdin_streamer_destroy(&stdin_streamer);
     return 0;
@@ -83,28 +81,33 @@ int call_fill(void* context, char* buffer, size_t len) {
 
     switch (self->already_filled) {
     case 0:
-        self->dest = buffer;
-        self->dest_len = len;
+        self->dest.len = len;
+        self->dest.string = buffer;
         break;
 
     case 1:
-        self->path = buffer;
-        self->path_len = len;
+        self->path.len = len;
+        self->path.string = buffer;
         break;
 
     case 2:
-        self->interface = buffer;
-        self->interface_len = len;
+        self->interface.len = len;
+        self->interface.string = buffer;
         break;
 
     case 3:
-        self->method = buffer;
-        self->method_len = len;
+        self->method.len = len;
+        self->method.string = buffer;
         break;
 
     case 4:
-        self->params_string = buffer;
-        self->params_string_len = len;
+        if (len == 0) { // no hay parametros
+            self->n_params = 0;
+            self->params = NULL;
+            free(buffer);
+        } else { // en buffer tenemos un string de los parametros
+            call_parameters_parser(self, buffer, len, PARAMS_DELIMITER);
+        }
         break;
     
     default: 
@@ -118,27 +121,26 @@ int call_fill(void* context, char* buffer, size_t len) {
 
 
 int call_destroy(call_t* self) {
-    if (self->dest) {
-        free(self->dest);
+    if (self->dest.string) {
+        free(self->dest.string);
     }
-    if (self->path) {
-        free(self->path);
+    if (self->path.string) {
+        free(self->path.string);
     }
-    if (self->interface) {
-        free(self->interface);
+    if (self->interface.string) {
+        free(self->interface.string);
     }
-    if (self->method) {
-        free(self->method);
+    if (self->method.string) {
+        free(self->method.string);
     }
     
     if (self->params) {
         for (int i = 0; i < (self->n_params); i++) {
-            free(self->params[i].param);
+            free(self->params[i].string);
         }
         free(self->params);
     }
 
-    
     return 0;
 }
 

@@ -9,26 +9,19 @@
 // structs
 
 typedef struct param {
-    char* param;
-    size_t param_len;
+    char* string;
+    size_t len;
 } param_t;
 
 typedef struct call {
     int already_filled;
-
-    char* dest;
-    size_t dest_len;
-    char* path;
-    size_t path_len;
-    char* interface;
-    size_t interface_len;
-    char* method;
-    size_t method_len;
-    char* params_string;
-    size_t params_string_len;
+    param_t dest;
+    param_t path;
+    param_t interface;
+    param_t method;
 
     param_t* params;
-    size_t n_params;
+    size_t n_params; 
 } call_t;
 
 

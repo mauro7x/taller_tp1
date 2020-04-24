@@ -33,7 +33,6 @@ static int stdin_streamer_by_word(stdin_streamer_t* self, void* context, char de
         size_t len = 0;
 
         for (int i = 0; ((i<32) && (!found_delimiter)); i++) {
-            // c = fgetc(stdin);
             if (c != delimiter) {
                 static_buffer[i] = c;
                 len++;
@@ -71,6 +70,7 @@ int stdin_streamer_run(stdin_streamer_t *self, void *context) {
     if (stdin_streamer_by_word(self, context, ' ')) {
         return -1; //end of file
     }
+    
     stdin_streamer_by_word(self, context, ' ');
     stdin_streamer_by_word(self, context, ' ');
     stdin_streamer_by_word(self, context, '(');

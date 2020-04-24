@@ -63,8 +63,9 @@ static int client_send_call(client_t* self) {
         return -1; //eof
     }
 
-    call_destroy(&call);
+    // enviarla
 
+    call_destroy(&call);
     return 0;
 }
 
