@@ -57,14 +57,14 @@ int main(int argc, const char *argv[]) {
     // hacemos algo y despues sigue el curso
     // vamos a enviar un mensaje
 
-    /*
+    
 
     if (server_testing_action(&client)) {
         client_destroy(&client);
         return SEND_ERROR;
     }
 
-    */
+    
     
 
     // --------------------------------------------------------

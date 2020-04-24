@@ -44,14 +44,14 @@ static int stdin_streamer_by_word(stdin_streamer_t* self, void* context, char de
         }
 
         if (total_length == 0) {
-            word = (char*) malloc(sizeof(char)*(len+1));
+            word = (char*) malloc(sizeof(char)*(len));
             strncpy(word, static_buffer, len);
             total_length+= len;
         } else {
             char* temp = (char*) malloc(sizeof(char) * total_length);
             strncpy(temp, word, total_length);
             free(word);
-            word = (char*) malloc(sizeof(char)*total_length + sizeof(char)*(len+1));
+            word = (char*) malloc(sizeof(char)*total_length + sizeof(char)*(len));
             strncpy(word, temp, total_length);
             strncpy(word+total_length, static_buffer, len);
             free(temp);

@@ -63,18 +63,6 @@ static int client_send_call(client_t* self) {
         return -1; //eof
     }
 
-    call.dest[call.dest_len] = '\0';
-    call.path[call.path_len] = '\0';
-    call.interface[call.interface_len] = '\0';
-    call.method[call.method_len] = '\0';
-    call.params[call.params_len] = '\0';
-
-    printf("* dest: %s\n", call.dest);
-    printf("* path: %s\n", call.path);
-    printf("* interface: %s\n", call.interface);
-    printf("* method: %s\n", call.method);
-    printf("* params: %s\n", call.params);
-
     call_destroy(&call);
 
     return 0;
