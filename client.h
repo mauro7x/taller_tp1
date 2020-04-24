@@ -20,6 +20,8 @@ int client_create(client_t* self, int argc, const char* argv[]);
 
 int client_connect(client_t* self);
 
+int client_send_calls(client_t* self);
+
 int client_shutdown(client_t* self);
 
 int client_destroy(client_t* self);

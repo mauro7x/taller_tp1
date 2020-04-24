@@ -1,5 +1,7 @@
 // includes
 #include "server.h"
+#include "socket.h"
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -106,7 +108,8 @@ int server_shutdown(server_t* self) {
 }
 
 int server_destroy(server_t* self) {
-
+    socket_destroy(&(self->acceptor));
+    socket_destroy(&(self->peer));
     return 0;
 }
 

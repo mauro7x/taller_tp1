@@ -1,5 +1,6 @@
 // includes
 #include "client.h"
+#include "call.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -48,6 +49,44 @@ int client_connect(client_t* self) {
         return -1;
     }   
 
+    return 0;
+}
+
+
+
+// --------------------------------------------------------
+
+static int client_send_call(client_t* self) {
+    call_t call;
+
+    if (call_create(&call)) {
+        return -1; //eof
+    }
+
+    call.dest[call.dest_len] = '\0';
+    call.path[call.path_len] = '\0';
+    call.interface[call.interface_len] = '\0';
+    call.method[call.method_len] = '\0';
+    call.params[call.params_len] = '\0';
+
+    printf("* dest: %s\n", call.dest);
+    printf("* path: %s\n", call.path);
+    printf("* interface: %s\n", call.interface);
+    printf("* method: %s\n", call.method);
+    printf("* params: %s\n", call.params);
+
+    call_destroy(&call);
+
+    return 0;
+}
+
+
+int client_send_calls(client_t* self) {
+    
+    while(!feof(stdin)) {
+        client_send_call(self);
+    }
+    
     return 0;
 }
 
@@ -101,6 +140,7 @@ int client_shutdown(client_t* self) {
 
 
 int client_destroy(client_t* self) {
+    socket_destroy(&self->socket);
     fclose(stdin);
     return 0;
 }

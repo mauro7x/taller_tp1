@@ -49,10 +49,12 @@ int main(int argc, const char *argv[]) {
     // hacemos algo y despues sigue el curso
     // vamos a recibir un mensaje
 
+    /*
     if (server_testing_action(&server)) {
         server_destroy(&server);
         return TEST_ERROR;
     }
+    */
 
     // --------------------------------------------------------
 

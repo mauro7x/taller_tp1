@@ -44,15 +44,28 @@ int main(int argc, const char *argv[]) {
         return CONNECT_ERROR;
     }
 
+    
+    if (client_send_calls(&client)) {
+        client_destroy(&client);
+        return SEND_ERROR;
+    }
+
+
+
     // --------------------------------------------------------
     // para este punto, tenemos que estar conectados
     // hacemos algo y despues sigue el curso
     // vamos a enviar un mensaje
 
+    /*
+
     if (server_testing_action(&client)) {
         client_destroy(&client);
         return SEND_ERROR;
     }
+
+    */
+    
 
     // --------------------------------------------------------
     

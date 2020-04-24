@@ -7,6 +7,9 @@
 /.vscode
 /testing
 /things
+/stdin_streamer_test
+/malloc_test
+
 
 # particulares
 *.o
