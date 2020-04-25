@@ -82,6 +82,15 @@ static int client_send_call(client_t* self, uint32_t id) {
 
     // enviar
     
+    int sent;
+
+    sent = socket_send(&(self->socket), call.msg, (size_t) call.total_len);
+    if (sent == -1) {
+        fprintf(stderr, "Error en el envio del mensaje.\n");
+        return -1;
+    } else {
+        fprintf(stdout, "Se enviaron %d bytes.\n", sent);
+    }
 
     call_destroy(&call);
     return 0;

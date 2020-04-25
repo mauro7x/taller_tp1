@@ -49,8 +49,7 @@ static int stdin_streamer_by_word(stdin_streamer_t* self, void* context, char de
         } else {
             char* temp = (char*) malloc(sizeof(char) * total_length);
             strncpy(temp, word, total_length);
-            free(word);
-            word = (char*) malloc(sizeof(char)*total_length + sizeof(char)*(len));
+            word = realloc(word, sizeof(char)*total_length + sizeof(char)*(len));
             strncpy(word, temp, total_length);
             strncpy(word+total_length, static_buffer, len);
             free(temp);
