@@ -1,6 +1,7 @@
 // includes
 #include "client.h"
 #include "call.h"
+#include "dbus_parser.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -67,20 +68,18 @@ int client_connect(client_t* self) {
 
 static int client_send_call(client_t* self, uint32_t id) {
     call_t call;
-    
-    int s = call_create(&call, id, &(self->streamer));
-    if (s == -1) {
-        fprintf(stderr, "Error in function: call_create.\n");
-        return -1;
-    } else if (s == EOF_ERROR) {
+    if (call_create(&call, id, &(self->streamer))) {
         return EOF_ERROR;
     }
 
-    
-    /* para printear byte x byte el msg
+    dbus_parser_t dbus_parser;
+    dbus_parser_create(&dbus_parser, &call);
+ 
 
-    for (int i = 0; i < call.total_len; i++) {
-        printf("msg[%i]: %d\n", i, call.msg[i]);
+    /* for printing the msg
+  
+    for (int i = 0; i < dbus_parser.total_len; i++) {
+        printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
     }
 
     */
@@ -100,7 +99,7 @@ static int client_send_call(client_t* self, uint32_t id) {
 
     */
 
-
+    dbus_parser_destroy(&dbus_parser);
     call_destroy(&call);
     return 0;
 }
