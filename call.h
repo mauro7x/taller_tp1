@@ -34,7 +34,7 @@ typedef struct call {
 // --------------------------------------------------------
 // declarations
 
-int call_create(call_t* self, uint32_t id, stdin_streamer_t* streamer);
+int call_create(call_t* self, uint32_t id, char* line, size_t len);
 
 int call_fill(void* context, char* buffer, size_t len);
 

@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
 // defines
+
 
 // --------------------------------------------------------
 // definiciones
@@ -16,6 +15,8 @@ int stdin_streamer_create(stdin_streamer_t *self, callback_t callback) {
     self->callback = callback;
     return 0;
 }
+
+/*
 
 static int stdin_streamer_by_word(stdin_streamer_t* self, void* context, char delimiter) {
     char* word;
@@ -61,7 +62,6 @@ static int stdin_streamer_by_word(stdin_streamer_t* self, void* context, char de
     return 0;
 }
 
-
 int stdin_streamer_run(stdin_streamer_t *self, void *context) {
     // formato de entrada: <dest> <path> <interface> <method>([<arg1, arg2, ... argN>])\n
     // por enunciado SE PUEDE ASUMIR que la linea esta formada correctamente
@@ -77,6 +77,24 @@ int stdin_streamer_run(stdin_streamer_t *self, void *context) {
     fgetc(stdin); // eliminar \n final
     return 0;
 }
+
+*/
+
+
+int stdin_streamer_run(stdin_streamer_t *self, void *context) {
+
+    /**
+     * Tenemos que leer lineas separadas por \n hasta el eof,
+     * y mandarlas a callback.
+    */
+
+
+
+
+
+    return 0;
+}
+
 
 
 int stdin_streamer_destroy(stdin_streamer_t *self) {

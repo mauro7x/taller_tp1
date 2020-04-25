@@ -31,14 +31,11 @@ static int client_set_stdin(int argc, const char* argv[]) {
 int client_create(client_t* self, int argc, const char* argv[]) {
     self->hostname = argv[1];
     self->port = argv[2];
+    self->next_msg_id = 1;
 
     socket_t socket;
     socket_create(&socket);
     self->socket = socket;
-
-    stdin_streamer_t streamer;
-    stdin_streamer_create(&streamer, &call_fill);
-    self->streamer = streamer;
 
     if (client_set_stdin(argc, argv)) {
         fprintf(stderr, "Error in function: client_set_stdin. Error: no se puede abrir el archivo.");
@@ -66,6 +63,37 @@ int client_connect(client_t* self) {
 
 // --------------------------------------------------------
 
+static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
+
+    // ENVIAR EL MENSAJE
+
+    return 0;
+}
+
+
+/**
+ * CALLBACK del STDIN_STREAMER.
+ * Recibe una linea sin parsear, arma la call, y la envia.
+*/
+int client_create_call(void* context, char* buffer, size_t len) {
+    client_t* self = (client_t*) context;
+    
+    call_t call;
+    call_create(&self, (self->next_msg_id)++, buffer, len);
+
+    dbus_parser_t dbus_parser;
+    dbus_parser_create(&dbus_parser, &call);
+
+    // enviar call
+    client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
+
+    dbus_parser_destroy(&dbus_parser);
+    call_destroy(&call);
+    return 0;
+}
+
+
+/*
 static int client_send_call(client_t* self, uint32_t id) {
     call_t call;
     if (call_create(&call, id, &(self->streamer))) {
@@ -76,16 +104,13 @@ static int client_send_call(client_t* self, uint32_t id) {
     dbus_parser_create(&dbus_parser, &call);
  
 
-    /* for printing the msg
+    // for printing the msg
   
     for (int i = 0; i < dbus_parser.total_len; i++) {
         printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
     }
 
-    */
-
-
-    /* para enviarlo
+    // para enviarlo
      
     int sent;
 
@@ -97,22 +122,33 @@ static int client_send_call(client_t* self, uint32_t id) {
         fprintf(stdout, "Se enviaron %d bytes.\n", sent);
     }
 
-    */
+
 
     dbus_parser_destroy(&dbus_parser);
     call_destroy(&call);
     return 0;
 }
-
+*/
 
 int client_send_calls(client_t* self) {
+    stdin_streamer_t streamer;
+    stdin_streamer_create(&streamer, &client_create_call);
+
+
+    stdin_streamer_run(&streamer, self);
+    // enviar las calls
+
+
+    stdin_streamer_destroy(&streamer);
+    return 0;
+
+    /*
     uint32_t next_id = 1;
 
     while(!feof(stdin)) {
         client_send_call(self, next_id++);
     }
-    
-    return 0;
+    */
 }
 
 
@@ -163,10 +199,8 @@ int client_shutdown(client_t* self) {
     return 0;
 }
 
-
 int client_destroy(client_t* self) {
     socket_destroy(&(self->socket));
-    stdin_streamer_destroy(&(self->streamer));
     fclose(stdin);
     return 0;
 }

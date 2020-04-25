@@ -4,15 +4,15 @@
 // --------------------------------------------------------
 // includes
 #include "socket.h"
-#include "stdin_streamer.h"
+#include <stdint.h>
 
 // --------------------------------------------------------
 // estructuras
 typedef struct client {
+    uint32_t next_msg_id; 
     const char* port;
     const char* hostname;
     socket_t socket;
-    stdin_streamer_t streamer;
 } client_t;
 
 // --------------------------------------------------------

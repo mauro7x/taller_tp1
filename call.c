@@ -65,13 +65,11 @@ static void call_parameters_parser(call_t* self, char* buffer, size_t len, char 
 // --------------------------------------------------------
 // public definitions
 
-int call_create(call_t* self, uint32_t id, stdin_streamer_t* streamer) {
+int call_create(call_t* self, uint32_t id, char* line, size_t len) {
     self->already_filled = 0;
     self->id = id;
 
-    if (stdin_streamer_run(streamer, self)) {
-        return -1; // eof
-    }
+    // parsear la linea entera aca
 
     return 0;
 }
