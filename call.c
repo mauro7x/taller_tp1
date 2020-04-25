@@ -141,11 +141,6 @@ static void call_set_array_len(call_t* self) {
         }
     }
 
- 
-    printf("%ld %ld %ld %ld %ld %ld\n\n", dest_length, path_length, interface_length,
-                                method_length, params_length, last_padding);
-
-
     self->array_len = (uint32_t) (dest_length + path_length + interface_length + 
                         method_length + params_length - last_padding);
 }
@@ -196,98 +191,111 @@ static void call_copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
     (*offset) += len;
 }
 
-static void call_copy_param_to_msg(call_t* self, param_t param, char* msg, int* i) {
+static void call_copy_param_to_msg(call_t* self, param_t param, char* msg, int* offset) {
     /** 
      * FORMATO:
      * id,1,datatype,0(padding),len_param(uint32),param(len_param bytes),
      * \0,[padding%8]
     */
 
-    call_copy_to_msg(msg, i, &(param.id), sizeof(param.id));
-    call_copy_c_to_msg(msg, i, '1', 1);
-    call_copy_to_msg(msg, i, &(param.data_type), sizeof(param.data_type));
-    call_copy_c_to_msg(msg, i, '\0', 1);
+    call_copy_to_msg(msg, offset, &(param.id), sizeof(param.id));
+    call_copy_c_to_msg(msg, offset, '1', 1);
+    call_copy_to_msg(msg, offset, &(param.data_type), sizeof(param.data_type));
+    call_copy_c_to_msg(msg, offset, '\0', 1);
 
-    call_copy_to_msg(msg, i, &(param.len), sizeof(param.len));
-    call_copy_to_msg(msg, i, param.string, param.len);
-    call_copy_c_to_msg(msg, i, '\0', 1);
+    call_copy_to_msg(msg, offset, &(param.len), sizeof(param.len));
+    call_copy_to_msg(msg, offset, param.string, param.len);
+    call_copy_c_to_msg(msg, offset, '\0', 1);
 
     if ((param.len + 1) % 8) {
         size_t bytes_of_padding = 8 - ((param.len + 1) % 8);
-        call_copy_c_to_msg(msg, i, '\0', bytes_of_padding);
+        call_copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
     }
 }
 
-static void call_copy_header_desc_to_msg(call_t* self, char* msg, int* i) {
+static void call_copy_header_desc_to_msg(call_t* self, char* msg, int* offset) {
     /** 
      * FORMATO:
      * endianness,function,flags,protocol_version,body_length(uint32),
      * id(uint32),array_length(uint32);
     */
 
-    call_copy_c_to_msg(msg, i, ENDIANNESS, 1);
-    call_copy_c_to_msg(msg, i, BYTE_FOR_METHOD_CALLS, 1);
-    call_copy_c_to_msg(msg, i, HEADER_FLAGS, 1);
-    call_copy_c_to_msg(msg, i, PROTOCOL_VERSION, 1);
+    call_copy_c_to_msg(msg, offset, ENDIANNESS, 1);
+    call_copy_c_to_msg(msg, offset, BYTE_FOR_METHOD_CALLS, 1);
+    call_copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
+    call_copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
 
-    call_copy_to_msg(msg, i, &(self->body_len), sizeof(self->body_len));
-    call_copy_to_msg(msg, i, &(self->id), sizeof(self->id));
-    call_copy_to_msg(msg, i, &(self->array_len), sizeof(self->array_len));
+    call_copy_to_msg(msg, offset, &(self->body_len), sizeof(self->body_len));
+    call_copy_to_msg(msg, offset, &(self->id), sizeof(self->id));
+    call_copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
 }
 
-static void call_copy_declaration_to_msg(call_t* self, param_t* param, char* msg, int* i) {
+static void call_copy_declaration_to_msg(call_t* self, param_t* param, char* msg, int* offset) {
     /** 
      * FORMATO:
      * id,1,datatype,0(padding),n_params,'s', ... (n_params times),
      * \0,[padding%8]
     */
 
-    call_copy_c_to_msg(msg, i, DECLARATION_ID, 1);
-    call_copy_c_to_msg(msg, i, '1', 1);
-    call_copy_c_to_msg(msg, i, DECLARATION_DATA_TYPE, 1);
-    call_copy_c_to_msg(msg, i, '\0', 1);
+    call_copy_c_to_msg(msg, offset, DECLARATION_ID, 1);
+    call_copy_c_to_msg(msg, offset, '1', 1);
+    call_copy_c_to_msg(msg, offset, DECLARATION_DATA_TYPE, 1);
+    call_copy_c_to_msg(msg, offset, '\0', 1);
 
-    call_copy_c_to_msg(msg, i, self->n_params, 1);
-    for (int j = 0; j < self->n_params; j++) {
-        call_copy_c_to_msg(msg, i, 's', 1);
+    call_copy_c_to_msg(msg, offset, self->n_params, 1);
+    for (int i = 0; i < self->n_params; i++) {
+        call_copy_c_to_msg(msg, offset, 's', 1);
     }
-    call_copy_c_to_msg(msg, i, '\0', 1);
+    call_copy_c_to_msg(msg, offset, '\0', 1);
 
-    if ((*i) % 8) {
-        size_t bytes_of_padding = 8 - ((*i) % 8);
-        call_copy_c_to_msg(msg, i, '\0', bytes_of_padding);
+    if ((*offset) % 8) {
+        size_t bytes_of_padding = 8 - ((*offset) % 8);
+        call_copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
     }    
 
 }
 
-
-static void call_copy_header_to_msg(call_t* self, char* msg, int* i) {
+static void call_copy_header_to_msg(call_t* self, char* msg, int* offset) {
     // copiamos los bytes iniciales
-    call_copy_header_desc_to_msg(self, msg, i);
+    call_copy_header_desc_to_msg(self, msg, offset);
 
     // array de parametros
-    call_copy_param_to_msg(self, self->dest, msg, i);
-    call_copy_param_to_msg(self, self->path, msg, i);
-    call_copy_param_to_msg(self, self->interface, msg, i);
-    call_copy_param_to_msg(self, self->method, msg, i);
+    call_copy_param_to_msg(self, self->dest, msg, offset);
+    call_copy_param_to_msg(self, self->path, msg, offset);
+    call_copy_param_to_msg(self, self->interface, msg, offset);
+    call_copy_param_to_msg(self, self->method, msg, offset);
 
     // firma (si hay)
     if (self->n_params) {
-        call_copy_declaration_to_msg(self, self->params, msg, i);
+        call_copy_declaration_to_msg(self, self->params, msg, offset);
     }
     
 }
 
+static void call_copy_body_to_msg(call_t* self, char* msg, int* offset) {
+    // al ultimo argumento no se le pone padding
+    
+    for (int i = 0; i < (self->n_params); i++) {
+        call_copy_to_msg(msg, offset, &(self->params[i].len), sizeof(self->params[i].len));
+        call_copy_to_msg(msg, offset, self->params[i].string, self->params[i].len);
+        call_copy_c_to_msg(msg, offset, '\0', 1);
+
+        if (((self->params[i].len + 1) % 4) && (i != ((self->n_params) - 1))) {
+            size_t bytes_of_padding = 4 - ((self->params[i].len + 1) % 4);
+            call_copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
+        }
+    }
+
+}
 
 static int call_process(call_t* self) {
     char* msg = (char*) malloc(self->total_len);
+    
     memset(msg, '/', self->total_len);
 
     int i = 0;
     call_copy_header_to_msg(self, msg, &i);
-    printf("array len= %d, body_len = %d, header_len = %d\n", self->array_len, self->body_len,
-                                             (self->total_len)-(self->body_len));
-
+    call_copy_body_to_msg(self, msg, &i);
 
     self->msg = msg;
     return 0;
@@ -295,14 +303,14 @@ static int call_process(call_t* self) {
 
 
 
-
 // --------------------------------------------------------
-// definitions
+// public api
 
 
 int call_create(call_t* self, uint32_t id) {
     self->already_filled = 0;
     self->id = id;
+
     call_set_types(self);
 
     stdin_streamer_t stdin_streamer;
@@ -387,10 +395,11 @@ int call_destroy(call_t* self) {
         }
         free(self->params);
     }
-
+    
     if (self->msg) {
         free(self->msg);
     }
+    
 
     return 0;
 }

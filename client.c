@@ -72,23 +72,16 @@ static int client_send_call(client_t* self, uint32_t id) {
         return EOF_ERROR;
     }
 
-    // chequeamos si esta bien
+    /* PARA PRINTEAR LA CALL BYTE POR BYTE
 
     for (int i = 0; i < call.total_len; i++) {
         printf("msg[%i]: %d\n", i, call.msg[i]);
     }
 
+    */
 
+    // enviar
     
-
-    
-
-
-
-
-
-    //
-
 
     call_destroy(&call);
     return 0;
