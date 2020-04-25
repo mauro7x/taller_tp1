@@ -307,16 +307,13 @@ static int call_process(call_t* self) {
 // public api
 
 
-int call_create(call_t* self, uint32_t id) {
+int call_create(call_t* self, uint32_t id, stdin_streamer_t* streamer) {
     self->already_filled = 0;
     self->id = id;
 
     call_set_types(self);
-
-    stdin_streamer_t stdin_streamer;
-    stdin_streamer_create(&stdin_streamer, &call_fill);
     
-    if (stdin_streamer_run(&stdin_streamer, self)) {
+    if (stdin_streamer_run(streamer, self)) {
         return EOF_ERROR; // eof
     }
 
@@ -326,7 +323,6 @@ int call_create(call_t* self, uint32_t id) {
         return -1;
     }
 
-    stdin_streamer_destroy(&stdin_streamer);
     return 0;
 }
 

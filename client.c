@@ -35,6 +35,10 @@ int client_create(client_t* self, int argc, const char* argv[]) {
     socket_create(&socket);
     self->socket = socket;
 
+    stdin_streamer_t streamer;
+    stdin_streamer_create(&streamer, &call_fill);
+    self->streamer = streamer;
+
     if (client_set_stdin(argc, argv)) {
         fprintf(stderr, "Error in function: client_set_stdin. Error: no se puede abrir el archivo.");
         return -1;
@@ -64,7 +68,7 @@ int client_connect(client_t* self) {
 static int client_send_call(client_t* self, uint32_t id) {
     call_t call;
     
-    int s = call_create(&call, id);
+    int s = call_create(&call, id, &(self->streamer));
     if (s == -1) {
         fprintf(stderr, "Error in function: call_create.\n");
         return -1;
@@ -72,7 +76,8 @@ static int client_send_call(client_t* self, uint32_t id) {
         return EOF_ERROR;
     }
 
-    /* PARA PRINTEAR LA CALL BYTE POR BYTE
+    
+    /* para printear byte x byte el msg
 
     for (int i = 0; i < call.total_len; i++) {
         printf("msg[%i]: %d\n", i, call.msg[i]);
@@ -80,8 +85,9 @@ static int client_send_call(client_t* self, uint32_t id) {
 
     */
 
-    // enviar
-    
+
+    /* para enviarlo
+     
     int sent;
 
     sent = socket_send(&(self->socket), call.msg, (size_t) call.total_len);
@@ -91,6 +97,9 @@ static int client_send_call(client_t* self, uint32_t id) {
     } else {
         fprintf(stdout, "Se enviaron %d bytes.\n", sent);
     }
+
+    */
+
 
     call_destroy(&call);
     return 0;
@@ -157,7 +166,8 @@ int client_shutdown(client_t* self) {
 
 
 int client_destroy(client_t* self) {
-    socket_destroy(&self->socket);
+    socket_destroy(&(self->socket));
+    stdin_streamer_destroy(&(self->streamer));
     fclose(stdin);
     return 0;
 }
