@@ -4,13 +4,57 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 // defines
 #define PARAMS_DELIMITER ','
+#define EOF_ERROR 1
+
+// D-BUS CONSTANTS
+// header constants
+#define ENDIANNESS 'l'
+#define BYTE_FOR_METHOD_CALLS 0x01
+#define HEADER_FLAGS 0x00
+#define PROTOCOL_VERSION 0x01
+
+// byte-counting constants
+#define PARAM_DESC_BYTES 8   // bytes que se usan para la descripcion
+                                    // de cada parametro
+#define DECLARATION_DESC_BYTES 5
+#define END_BYTE 1
+#define BODY_ARG_LENGTH_BYTES 4
+
+// protocol data types and identifiers
+#define DESTINATION_ID 6
+#define DESTINATION_DATA_TYPE 's'
+#define PATH_ID 1
+#define PATH_DATA_TYPE 'o'
+#define INTERFACE_ID 2
+#define INTERFACE_DATA_TYPE 's'
+#define METHOD_ID 3
+#define METHOD_DATA_TYPE 's'
+#define DECLARATION_ID 8
+#define DECLARATION_DATA_TYPE 'g'
 
 
 // --------------------------------------------------------
-// definitions
+// static definitions
+
+static void call_set_types(call_t* self) {
+    // acorde al protocolo D-Bus
+    self->dest.id = DESTINATION_ID;
+    self->dest.data_type = DESTINATION_DATA_TYPE;
+    self->path.id = PATH_ID;
+    self->path.data_type = PATH_DATA_TYPE;
+    self->interface.id = INTERFACE_ID;
+    self->interface.data_type = INTERFACE_DATA_TYPE;
+    self->method.id = METHOD_ID;
+    self->method.data_type = METHOD_DATA_TYPE;
+}
+
+// --------------------------------------------------------
+// parameters parser
+
 
 static size_t call_parameters_counter(char* buffer, size_t len, char delimiter) {
 
@@ -38,7 +82,7 @@ static void call_parameters_fill(param_t* params, char* buffer, size_t len, char
             char* current_param = (char*) malloc(sizeof(char)*(current_param_len));
             strncpy(current_param, buffer + last_delimiter, current_param_len);
             params[params_added].string = current_param;
-            params[params_added].len = current_param_len;
+            params[params_added].len = (uint32_t) current_param_len;
             current_param_len = 0;
             params_added++;
             last_delimiter = i+1;
@@ -60,15 +104,218 @@ static void call_parameters_parser(call_t* self, char* buffer, size_t len, char 
     free(buffer);
 }
 
+// --------------------------------------------------------
+// call process
 
-int call_create(call_t* self) {
+
+static void call_set_array_len(call_t* self) {
+    size_t dest_length = self->dest.len + PARAM_DESC_BYTES + END_BYTE;
+    if (dest_length % 8) {
+        dest_length += 8 - (dest_length % 8); // padding
+    }
+
+    size_t path_length = self->path.len + PARAM_DESC_BYTES + END_BYTE;
+    if (path_length % 8) {
+        path_length += 8 - (path_length % 8); // padding
+    }
+ 
+    size_t interface_length = self->interface.len + PARAM_DESC_BYTES + END_BYTE;
+    if (interface_length % 8) {
+        interface_length += 8 - (interface_length % 8); // padding
+    }
+   
+    size_t last_padding = 0;
+
+    size_t method_length = self->method.len + PARAM_DESC_BYTES + END_BYTE;
+    if (method_length % 8) {
+        last_padding = 8 - (method_length % 8); // padding
+        method_length += last_padding;
+    }
+  
+    size_t params_length = 0;
+    if (self->n_params) {
+        params_length = self->n_params + DECLARATION_DESC_BYTES + END_BYTE;
+        if (params_length % 8) {
+            last_padding = 8 - (params_length % 8);
+            params_length += last_padding;
+        }
+    }
+
+ 
+    printf("%ld %ld %ld %ld %ld %ld\n\n", dest_length, path_length, interface_length,
+                                method_length, params_length, last_padding);
+
+
+    self->array_len = (uint32_t) (dest_length + path_length + interface_length + 
+                        method_length + params_length - last_padding);
+}
+
+static void call_set_body_len(call_t* self) {
+    /**
+     * ESTO ES UNA PLENA DEDUCCION PERSONAL, EN EL ENUNCIADO NO DICE NADA
+     * El formato del body es:
+     * por cada arg se agrega: UINT32 (longitud del arg), ARG + \0 + padding a %4
+     * en el ultimo argumento no se pone el padding.
+     */
+
+    size_t body_length = 0;
+    size_t last_padding = 0;
+    for (int i = 0; i < self->n_params; i++) {
+        body_length += BODY_ARG_LENGTH_BYTES;
+        body_length += self->params[i].len + END_BYTE;
+        if (body_length % 4) {
+            last_padding = 4 - (body_length % 4);
+            body_length += last_padding;
+        }
+    }
+    body_length -= last_padding;
+
+    self->body_len = (uint32_t) body_length;
+}
+
+static void call_set_total_length(call_t* self) {
+    call_set_array_len(self);
+    call_set_body_len(self);
+
+    size_t header_length = self->array_len + 16;
+
+    if (header_length % 8) {
+        header_length += 8 - (header_length % 8); // padding
+    }
+
+    self->total_len = (uint32_t) header_length + self->body_len;
+}
+
+static void call_copy_to_msg(char* dest, int* offset, void* src, size_t len) {
+    memcpy(dest + *offset, src, len);
+    (*offset) += len;
+}
+
+static void call_copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
+    memset(dest + *offset, c, len);
+    (*offset) += len;
+}
+
+static void call_copy_param_to_msg(call_t* self, param_t param, char* msg, int* i) {
+    /** 
+     * FORMATO:
+     * id,1,datatype,0(padding),len_param(uint32),param(len_param bytes),
+     * \0,[padding%8]
+    */
+
+    call_copy_to_msg(msg, i, &(param.id), sizeof(param.id));
+    call_copy_c_to_msg(msg, i, '1', 1);
+    call_copy_to_msg(msg, i, &(param.data_type), sizeof(param.data_type));
+    call_copy_c_to_msg(msg, i, '\0', 1);
+
+    call_copy_to_msg(msg, i, &(param.len), sizeof(param.len));
+    call_copy_to_msg(msg, i, param.string, param.len);
+    call_copy_c_to_msg(msg, i, '\0', 1);
+
+    if ((param.len + 1) % 8) {
+        size_t bytes_of_padding = 8 - ((param.len + 1) % 8);
+        call_copy_c_to_msg(msg, i, '\0', bytes_of_padding);
+    }
+}
+
+static void call_copy_header_desc_to_msg(call_t* self, char* msg, int* i) {
+    /** 
+     * FORMATO:
+     * endianness,function,flags,protocol_version,body_length(uint32),
+     * id(uint32),array_length(uint32);
+    */
+
+    call_copy_c_to_msg(msg, i, ENDIANNESS, 1);
+    call_copy_c_to_msg(msg, i, BYTE_FOR_METHOD_CALLS, 1);
+    call_copy_c_to_msg(msg, i, HEADER_FLAGS, 1);
+    call_copy_c_to_msg(msg, i, PROTOCOL_VERSION, 1);
+
+    call_copy_to_msg(msg, i, &(self->body_len), sizeof(self->body_len));
+    call_copy_to_msg(msg, i, &(self->id), sizeof(self->id));
+    call_copy_to_msg(msg, i, &(self->array_len), sizeof(self->array_len));
+}
+
+static void call_copy_declaration_to_msg(call_t* self, param_t* param, char* msg, int* i) {
+    /** 
+     * FORMATO:
+     * id,1,datatype,0(padding),n_params,'s', ... (n_params times),
+     * \0,[padding%8]
+    */
+
+    call_copy_c_to_msg(msg, i, DECLARATION_ID, 1);
+    call_copy_c_to_msg(msg, i, '1', 1);
+    call_copy_c_to_msg(msg, i, DECLARATION_DATA_TYPE, 1);
+    call_copy_c_to_msg(msg, i, '\0', 1);
+
+    call_copy_c_to_msg(msg, i, self->n_params, 1);
+    for (int j = 0; j < self->n_params; j++) {
+        call_copy_c_to_msg(msg, i, 's', 1);
+    }
+    call_copy_c_to_msg(msg, i, '\0', 1);
+
+    if ((*i) % 8) {
+        size_t bytes_of_padding = 8 - ((*i) % 8);
+        call_copy_c_to_msg(msg, i, '\0', bytes_of_padding);
+    }    
+
+}
+
+
+static void call_copy_header_to_msg(call_t* self, char* msg, int* i) {
+    // copiamos los bytes iniciales
+    call_copy_header_desc_to_msg(self, msg, i);
+
+    // array de parametros
+    call_copy_param_to_msg(self, self->dest, msg, i);
+    call_copy_param_to_msg(self, self->path, msg, i);
+    call_copy_param_to_msg(self, self->interface, msg, i);
+    call_copy_param_to_msg(self, self->method, msg, i);
+
+    // firma (si hay)
+    if (self->n_params) {
+        call_copy_declaration_to_msg(self, self->params, msg, i);
+    }
+    
+}
+
+
+static int call_process(call_t* self) {
+    char* msg = (char*) malloc(self->total_len);
+    memset(msg, '/', self->total_len);
+
+    int i = 0;
+    call_copy_header_to_msg(self, msg, &i);
+    printf("array len= %d, body_len = %d, header_len = %d\n", self->array_len, self->body_len,
+                                             (self->total_len)-(self->body_len));
+
+
+    self->msg = msg;
+    return 0;
+}
+
+
+
+
+// --------------------------------------------------------
+// definitions
+
+
+int call_create(call_t* self, uint32_t id) {
     self->already_filled = 0;
+    self->id = id;
+    call_set_types(self);
 
     stdin_streamer_t stdin_streamer;
     stdin_streamer_create(&stdin_streamer, &call_fill);
     
     if (stdin_streamer_run(&stdin_streamer, self)) {
-        return -1; // eof
+        return EOF_ERROR; // eof
+    }
+
+    call_set_total_length(self);
+
+    if (call_process(self)) {
+        return -1;
     }
 
     stdin_streamer_destroy(&stdin_streamer);
@@ -81,22 +328,22 @@ int call_fill(void* context, char* buffer, size_t len) {
 
     switch (self->already_filled) {
     case 0:
-        self->dest.len = len;
+        self->dest.len = (uint32_t) len;
         self->dest.string = buffer;
         break;
 
     case 1:
-        self->path.len = len;
+        self->path.len = (uint32_t) len;
         self->path.string = buffer;
         break;
 
     case 2:
-        self->interface.len = len;
+        self->interface.len = (uint32_t) len;
         self->interface.string = buffer;
         break;
 
     case 3:
-        self->method.len = len;
+        self->method.len = (uint32_t) len;
         self->method.string = buffer;
         break;
 
@@ -139,6 +386,10 @@ int call_destroy(call_t* self) {
             free(self->params[i].string);
         }
         free(self->params);
+    }
+
+    if (self->msg) {
+        free(self->msg);
     }
 
     return 0;

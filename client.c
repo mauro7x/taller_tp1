@@ -5,6 +5,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
+
+// defines
+#define EOF_ERROR 1
+
 
 // --------------------------------------------------------
 // definiciones
@@ -56,14 +61,34 @@ int client_connect(client_t* self) {
 
 // --------------------------------------------------------
 
-static int client_send_call(client_t* self) {
+static int client_send_call(client_t* self, uint32_t id) {
     call_t call;
-
-    if (call_create(&call)) {
-        return -1; //eof
+    
+    int s = call_create(&call, id);
+    if (s == -1) {
+        fprintf(stderr, "Error in function: call_create.\n");
+        return -1;
+    } else if (s == EOF_ERROR) {
+        return EOF_ERROR;
     }
 
-    // enviarla
+    // chequeamos si esta bien
+
+    for (int i = 0; i < call.total_len; i++) {
+        printf("msg[%i]: %d\n", i, call.msg[i]);
+    }
+
+
+    
+
+    
+
+
+
+
+
+    //
+
 
     call_destroy(&call);
     return 0;
@@ -71,9 +96,10 @@ static int client_send_call(client_t* self) {
 
 
 int client_send_calls(client_t* self) {
-    
+    uint32_t next_id = 1;
+
     while(!feof(stdin)) {
-        client_send_call(self);
+        client_send_call(self, next_id++);
     }
     
     return 0;
