@@ -70,7 +70,7 @@ int call_create(call_t* self, uint32_t id, stdin_streamer_t* streamer) {
     self->id = id;
 
     if (stdin_streamer_run(streamer, self)) {
-        return EOF_ERROR; // eof
+        return -1; // eof
     }
 
     return 0;
