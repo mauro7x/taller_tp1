@@ -1,6 +1,7 @@
 // includes
 #include "client.h"
 #include "call.h"
+#include "dbus_parser.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -35,6 +36,10 @@ int client_create(client_t* self, int argc, const char* argv[]) {
     socket_create(&socket);
     self->socket = socket;
 
+    stdin_streamer_t streamer;
+    stdin_streamer_create(&streamer, &call_fill);
+    self->streamer = streamer;
+
     if (client_set_stdin(argc, argv)) {
         fprintf(stderr, "Error in function: client_set_stdin. Error: no se puede abrir el archivo.");
         return -1;
@@ -63,25 +68,25 @@ int client_connect(client_t* self) {
 
 static int client_send_call(client_t* self, uint32_t id) {
     call_t call;
-    
-    int s = call_create(&call, id);
-    if (s == -1) {
-        fprintf(stderr, "Error in function: call_create.\n");
-        return -1;
-    } else if (s == EOF_ERROR) {
+    if (call_create(&call, id, &(self->streamer))) {
         return EOF_ERROR;
     }
 
-    /* PARA PRINTEAR LA CALL BYTE POR BYTE
+    dbus_parser_t dbus_parser;
+    dbus_parser_create(&dbus_parser, &call);
+ 
 
-    for (int i = 0; i < call.total_len; i++) {
-        printf("msg[%i]: %d\n", i, call.msg[i]);
+    /* for printing the msg
+  
+    for (int i = 0; i < dbus_parser.total_len; i++) {
+        printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
     }
 
     */
 
-    // enviar
-    
+
+    /* para enviarlo
+     
     int sent;
 
     sent = socket_send(&(self->socket), call.msg, (size_t) call.total_len);
@@ -92,6 +97,9 @@ static int client_send_call(client_t* self, uint32_t id) {
         fprintf(stdout, "Se enviaron %d bytes.\n", sent);
     }
 
+    */
+
+    dbus_parser_destroy(&dbus_parser);
     call_destroy(&call);
     return 0;
 }
@@ -157,7 +165,8 @@ int client_shutdown(client_t* self) {
 
 
 int client_destroy(client_t* self) {
-    socket_destroy(&self->socket);
+    socket_destroy(&(self->socket));
+    stdin_streamer_destroy(&(self->streamer));
     fclose(stdin);
     return 0;
 }
