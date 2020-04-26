@@ -28,8 +28,8 @@ static int client_set_stdin(int argc, const char* argv[]) {
 }
 
 static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
-
     int sent;
+
     sent = socket_send(&(self->socket), msg, (size_t) len);
     if (sent == -1) {
         fprintf(stderr, "Error en el envio del mensaje.\n");
