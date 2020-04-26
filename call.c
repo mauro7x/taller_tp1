@@ -104,11 +104,13 @@ int call_create(call_t* self, uint32_t id, char* line, size_t len) {
     call_fill_param_from_line(&(self->path), line, &offset, ' ', len);
     call_fill_param_from_line(&(self->interface), line, &offset, ' ', len);
     call_fill_param_from_line(&(self->method), line, &offset, '(', len);
-    
-    // no hacer si nparams es 0    
     call_fill_param_from_line(&(args), line, &offset, ')', len);
-    call_parameters_parser(self, args.string, args.len, ',');
 
+    if (args.len) {
+        call_parameters_parser(self, args.string, args.len, ',');
+    } else {
+        free(args.string);
+    }
     
     return 0;
 }
