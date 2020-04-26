@@ -6,7 +6,7 @@
 #define USAGE_ERROR 1           // problemas con el uso de la aplicacion
 #define OPEN_ERROR 2            // problemas con la abertura del servidor
 #define ACCEPT_ERROR 3          // problemas aceptando cliente
-#define TEST_ERROR 4            // problemas con las acciones en test
+#define RECEIVE_ERROR 4         // problemas recibiendo las calls
 
 #define SHUTDOWN_ERROR 10       // problemas con el shutdown
 #define DESTROY_ERROR 11        // problemas al destruir el server
@@ -43,6 +43,12 @@ int main(int argc, const char *argv[]) {
         server_destroy(&server);
         return ACCEPT_ERROR;
     }
+
+    if (server_receive_calls(&server)) {
+        server_destroy(&server);
+        return RECEIVE_ERROR;
+    }
+
     
     // --------------------------------------------------------
     // para este punto, tenemos que estar conectados

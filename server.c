@@ -52,6 +52,39 @@ int server_accept(server_t* self) {
     return 0;
 }
 
+
+
+int server_receive_calls(server_t* self) {
+
+    
+
+
+    return 0;
+}
+
+
+
+
+int server_shutdown(server_t* self) {
+    if (socket_shutdown(&(self->acceptor))) {
+        fprintf(stderr, "Error in function: socket_shutdown (S)\n");
+        return -1;
+    }
+
+    if (socket_shutdown(&(self->peer))) {
+        fprintf(stderr, "Error in function: socket_shutdown (P)\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int server_destroy(server_t* self) {
+    socket_destroy(&(self->acceptor));
+    socket_destroy(&(self->peer));
+    return 0;
+}
+
 // --------------------------------------------------------
 
 int server_testing_action(server_t* self) {
@@ -88,28 +121,6 @@ int server_testing_action(server_t* self) {
     printf("Mensaje recibido: %s\n", tmp);
 
     free(tmp);
-    return 0;
-}
-
-// --------------------------------------------------------
-
-int server_shutdown(server_t* self) {
-    if (socket_shutdown(&(self->acceptor))) {
-        fprintf(stderr, "Error in function: socket_shutdown (S)\n");
-        return -1;
-    }
-
-    if (socket_shutdown(&(self->peer))) {
-        fprintf(stderr, "Error in function: socket_shutdown (P)\n");
-        return -1;
-    }
-
-    return 0;
-}
-
-int server_destroy(server_t* self) {
-    socket_destroy(&(self->acceptor));
-    socket_destroy(&(self->peer));
     return 0;
 }
 
