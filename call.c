@@ -17,16 +17,15 @@
 static void call_fill_param_from_line(param_t* param, char* line, int* offset, char delimiter, size_t max_len) {
 
    uint32_t param_len = 0;
-   char* param_string = NULL;
    int delimiter_found = 0;
 
    for (int i = (*offset); (i < max_len) && (!delimiter_found); i++) {
        if (line[i] != delimiter) {
            param_len++;
        } else {
-           (*param).len = param_len;
-           (*param).string = (char*) malloc(sizeof(char)*param_len);
-           strncpy((*param).string, line+(*offset), param_len);
+           param->len = param_len;
+           param->string = (char*) malloc(sizeof(char)*param_len);
+           strncpy(param->string, line+(*offset), param_len);
            (*offset)+= param_len+1;
            delimiter_found = 1;
        }
@@ -96,10 +95,7 @@ int call_create(call_t* self, uint32_t id, char* line, size_t len) {
 
     int offset = 0;
     param_t args;
-    
-    // line[len] = '\0';
-    // puts(line);
-    
+   
     call_fill_param_from_line(&(self->dest), line, &offset, ' ', len);
     call_fill_param_from_line(&(self->path), line, &offset, ' ', len);
     call_fill_param_from_line(&(self->interface), line, &offset, ' ', len);
@@ -109,6 +105,8 @@ int call_create(call_t* self, uint32_t id, char* line, size_t len) {
     if (args.len) {
         call_parameters_parser(self, args.string, args.len, ',');
     } else {
+        self->n_params = 0;
+        self->params = NULL;
         free(args.string);
     }
     
@@ -117,8 +115,6 @@ int call_create(call_t* self, uint32_t id, char* line, size_t len) {
 
 
 int call_destroy(call_t* self) {
-    
-    
     if (self->dest.string) {
         free(self->dest.string);
     }
@@ -134,8 +130,6 @@ int call_destroy(call_t* self) {
         free(self->method.string);
     }
     
-    /*
-    
     if (self->params) {
         for (int i = 0; i < (self->n_params); i++) {
             free(self->params[i].string);
@@ -143,7 +137,6 @@ int call_destroy(call_t* self) {
         free(self->params);
     }
     
-    */
     return 0;
 }
 
