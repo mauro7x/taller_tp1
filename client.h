@@ -30,9 +30,4 @@ int client_shutdown(client_t* self);
 
 int client_destroy(client_t* self);
 
-// --------------------------------------------------------
-
-int server_testing_action(client_t* self);
-
-// --------------------------------------------------------
 #endif // __CLIENT_H__

@@ -36,12 +36,28 @@ static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
     if (sent == -1) {
         fprintf(stderr, "Error en el envio del mensaje.\n");
         return -1;
-    } else {
-        fprintf(stdout, "Se enviaron %d bytes.\n", sent);
     }
 
     return 0;
 }
+
+static int client_print_server_response(client_t* self) {
+    /*
+    int s;
+    char response[3] = "";
+    s = socket_recv(&(self->socket), &(response[0]), 3);
+    if (s == -1) {
+        return -1;
+    } else if (s == 0) {
+        fprintf(stderr, "Error in function: server_send_recv_confirmation. "
+                        "Socket was closed before expected.");
+        return -1;
+    }
+    */
+
+    return 0;
+}
+
 
 // --------------------------------------------------------
 // public definitions
@@ -90,14 +106,18 @@ int client_send_call(void* context, char* buffer, size_t len) {
     dbus_parser_t dbus_parser;
     dbus_parser_create(&dbus_parser, &call);
 
-    
+    /*
     for (int i = 0; i < dbus_parser.total_len; i++) {
         printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
     }
-    
+    */
 
     // enviar call
     client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
+
+    // recibimos e imprimimos respuesta
+    client_print_server_response(self);
+
 
     dbus_parser_destroy(&dbus_parser);
     call_destroy(&call);

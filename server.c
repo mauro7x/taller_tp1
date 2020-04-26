@@ -208,6 +208,7 @@ static int server_fill_call_params(server_t* self, call_t* call, int has_declara
         params_to_fill = 5;
     } else {
         params_to_fill = 4;
+        call->n_params = 0;
     }
     
     char type;
@@ -220,7 +221,6 @@ static int server_fill_call_params(server_t* self, call_t* call, int has_declara
                             "Socket was closed before expected.");
             return -1;
         }
-        
         if (server_fill_specific_param(self, call, type)) {
             return -1;
         }
@@ -228,6 +228,7 @@ static int server_fill_call_params(server_t* self, call_t* call, int has_declara
     
     return 0;
 }
+
 
 static int server_fill_call_declaration(server_t* self, call_t* call, int has_declaration) {
     if (!has_declaration) {
@@ -263,15 +264,8 @@ static int server_fill_call_from_peer(server_t* self, call_t* call) {
     server_receive_uint32_value(self, &body_len);
     server_receive_uint32_value(self, &id_call);
     server_receive_uint32_value(self, &array_len);
-
-
     call->id = id_call; // llenamos el id
 
-    printf("ID: %u\n", call->id);
-    printf("body_len: %u\n", body_len);
-    printf("array_len: %u\n", array_len);
-
-    
     if (server_fill_call_params(self, call, (body_len > 0))) {
         return -1;
     }
@@ -280,10 +274,49 @@ static int server_fill_call_from_peer(server_t* self, call_t* call) {
         return -1;
     }
     
+    return 0;
+}
+
+
+// for printing the received call
+
+static void server_print_received_call(call_t* received_call) {
+    printf("* Id: 0x%04x\n", received_call->id);
+    printf("* Destino: %s\n", received_call->dest.string);
+    printf("* Path: %s\n", received_call->path.string);
+    printf("* Interface: %s\n", received_call->interface.string);
+    printf("* Método: %s\n", received_call->method.string);
+
+    if (received_call->n_params) {
+        printf("* Parámetros:\n");
+        for (int i = 0; i < received_call->n_params; i++) {
+            printf("    * %s\n", received_call->params[i].string);
+        }
+    }
+
+    printf("\n");
+
+}
+
+// for sending answer back
+static int server_send_recv_confirmation(server_t* self) {
+
+    int s;
+    char* confirmation = "OK";
+    s = socket_send(&(self->peer), confirmation, 3);
+    if (s == -1) {
+        return -1;
+    } else if (s == 0) {
+        fprintf(stderr, "Error in function: server_send_recv_confirmation. "
+                        "Socket was closed before expected.");
+        return -1;
+    }
 
     return 0;
 }
 
+
+// receiving one call
 
 static int server_receive_and_process_call(server_t* self) {
     // Leemos el primer byte para verificar que se enviara otra call
@@ -305,12 +338,9 @@ static int server_receive_and_process_call(server_t* self) {
         return -1;
     }
 
-    puts(call.dest.string);
-    puts(call.path.string);
-    puts(call.interface.string);
-    puts(call.method.string);
-
     // aca tenemos que responder e imprimir.
+    server_print_received_call(&call);
+    server_send_recv_confirmation(self);
     
     call_destroy(&call);
     return 0;
