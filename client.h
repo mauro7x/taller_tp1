@@ -24,6 +24,8 @@ int client_connect(client_t* self);
 
 int client_send_calls(client_t* self);
 
+int client_send_call(void* context, char* buffer, size_t len);
+
 int client_shutdown(client_t* self);
 
 int client_destroy(client_t* self);

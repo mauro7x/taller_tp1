@@ -19,8 +19,8 @@ typedef struct param {
 } param_t;
 
 typedef struct call {
+    char endianness;
     uint32_t id;
-    int already_filled;
     
     param_t dest;
     param_t path;
@@ -35,9 +35,9 @@ typedef struct call {
 // --------------------------------------------------------
 // declarations
 
-int call_create(call_t* self, uint32_t id, char* line, size_t len);
+int call_create(call_t* self);
 
-int call_fill(void* context, char* buffer, size_t len);
+int call_fill(call_t* self, char* line, size_t len, uint32_t id);
 
 int call_destroy(call_t* self);
 

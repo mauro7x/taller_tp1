@@ -77,6 +77,8 @@ int main(int argc, const char *argv[]) {
         return DESTROY_ERROR;
     }
     
+
+    printf("\n\nCHAMPIONS\n\n");
     return 0;
 }
 

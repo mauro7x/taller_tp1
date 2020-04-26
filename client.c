@@ -2,6 +2,8 @@
 #include "client.h"
 #include "call.h"
 #include "dbus_parser.h"
+#include "socket.h"
+#include "stdin_streamer.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -41,7 +43,6 @@ static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
     return 0;
 }
 
-
 // --------------------------------------------------------
 // public definitions
 
@@ -79,34 +80,33 @@ int client_connect(client_t* self) {
  * CALLBACK del STDIN_STREAMER.
  * Recibe una linea sin parsear, arma la call, y la envia.
 */
-int client_create_call(void* context, char* buffer, size_t len) {
+int client_send_call(void* context, char* buffer, size_t len) {
     client_t* self = (client_t*) context;
  
     call_t call;
-    call_create(&call, (self->next_msg_id)++, buffer, len);
+    call_create(&call);
+    call_fill(&call, buffer, len, (self->next_msg_id)++);
 
     dbus_parser_t dbus_parser;
     dbus_parser_create(&dbus_parser, &call);
 
-    /*
+    
     for (int i = 0; i < dbus_parser.total_len; i++) {
         printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
     }
-    */
+    
 
     // enviar call
     client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
 
-
     dbus_parser_destroy(&dbus_parser);
     call_destroy(&call);
-
     return 0;
 }
 
 int client_send_calls(client_t* self) {
     stdin_streamer_t streamer;
-    stdin_streamer_create(&streamer, &client_create_call);  
+    stdin_streamer_create(&streamer, &client_send_call);  
 
     /**
      * stdin_streamer leera una call, llama a client_create_call,
@@ -130,42 +130,6 @@ int client_shutdown(client_t* self) {
 int client_destroy(client_t* self) {
     socket_destroy(&(self->socket));
     fclose(stdin);
-    return 0;
-}
-
-// --------------------------------------------------------
-
-int server_testing_action(client_t* self) {
-
-    int sent;
-
-    char longitud[2];
-
-
-    char* msg = "Mensaje random, aguante bokita";
-    unsigned short len = strlen(msg) + 1;
-
-
-    sprintf(longitud, "%d", len);
-
-    // primero mandamos dos digitos que representan la longitud del proximo mensaje
-    sent = socket_send(&(self->socket), longitud, 2);
-    if (sent == -1) {
-        fprintf(stderr, "Error en el envio del mensaje.");
-        return -1;
-    } else {
-        fprintf(stdout, "Se enviaron %d bytes.\n", sent);
-    }
-
-    // ahora mandamos el mensaje
-    sent = socket_send(&(self->socket), msg, (size_t) len);
-    if (sent == -1) {
-        fprintf(stderr, "Error en el envio del mensaje.");
-        return -1;
-    } else {
-        fprintf(stdout, "Se enviaron %d bytes.\n", sent);
-    }
-
     return 0;
 }
 

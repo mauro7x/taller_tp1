@@ -44,10 +44,12 @@ int main(int argc, const char *argv[]) {
         return ACCEPT_ERROR;
     }
 
+    
     if (server_receive_calls(&server)) {
         server_destroy(&server);
         return RECEIVE_ERROR;
     }
+    
 
     
     // --------------------------------------------------------
@@ -73,6 +75,8 @@ int main(int argc, const char *argv[]) {
         return DESTROY_ERROR;
     }
 
+
+    printf("\n\nCHAMPIONS\n\n");
     return 0;
 }
 

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 // D-Bus Protocol Constants ----------------------------------------------
 
 // header constants
@@ -43,6 +44,8 @@
 
 static void dbus_parser_set_dtypes(dbus_parser_t* self) {
     call_t* call = self->call;
+    
+    call->endianness = ENDIANNESS;
 
     call->dest.id = DESTINATION_ID;
     call->dest.data_type = DESTINATION_DATA_TYPE;
@@ -139,10 +142,10 @@ static void dbus_parser_copy_param_to_msg(param_t param, char* msg, int* offset)
     // \0,[padding%8]
 
     dbus_parser_copy_to_msg(msg, offset, &(param.id), sizeof(param.id));
-    dbus_parser_copy_c_to_msg(msg, offset, '1', 1);
+    dbus_parser_copy_c_to_msg(msg, offset, 1, 1);
     dbus_parser_copy_to_msg(msg, offset, &(param.data_type), sizeof(param.data_type));
     dbus_parser_copy_c_to_msg(msg, offset, '\0', 1);
-
+    
     dbus_parser_copy_to_msg(msg, offset, &(param.len), sizeof(param.len));
     dbus_parser_copy_to_msg(msg, offset, param.string, param.len);
     dbus_parser_copy_c_to_msg(msg, offset, '\0', 1);
@@ -178,7 +181,7 @@ static void dbus_parser_copy_declaration_to_msg(dbus_parser_t* self, param_t* pa
     call_t* call = self->call;
 
     dbus_parser_copy_c_to_msg(msg, offset, DECLARATION_ID, 1);
-    dbus_parser_copy_c_to_msg(msg, offset, '1', 1);
+    dbus_parser_copy_c_to_msg(msg, offset, 1, 1);
     dbus_parser_copy_c_to_msg(msg, offset, DECLARATION_DATA_TYPE, 1);
     dbus_parser_copy_c_to_msg(msg, offset, '\0', 1);
 

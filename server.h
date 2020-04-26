@@ -24,7 +24,14 @@ int server_open(server_t* self);
 
 int server_accept(server_t* self);
 
+
+
+
 int server_receive_calls(server_t* self);
+
+
+
+
 
 int server_shutdown(server_t* self);
 
