@@ -12,10 +12,29 @@
 // --------------------------------------------------------
 // static definitions for parsing
 
+// line parser
+
+static void call_fill_param_from_line(param_t* param, char* line, int* offset, char delimiter, size_t max_len) {
+
+   uint32_t param_len = 0;
+   int delimiter_found = 0;
+
+   for (int i = (*offset); (i < max_len) && (!delimiter_found); i++) {
+       if (line[i] != delimiter) {
+           param_len++;
+       } else {
+           param->len = param_len;
+           param->string = (char*) malloc(sizeof(char)*param_len);
+           strncpy(param->string, line+(*offset), param_len);
+           (*offset)+= param_len+1;
+           delimiter_found = 1;
+       }
+   }
+}
+
 // parameters parser
 
 static size_t call_parameters_counter(char* buffer, size_t len, char delimiter) {
-
     size_t n_params = 1;
 
     for (int i = 0; i < len; i++) { // cuento cuantos hay
@@ -65,67 +84,45 @@ static void call_parameters_parser(call_t* self, char* buffer, size_t len, char 
 // --------------------------------------------------------
 // public definitions
 
-int call_create(call_t* self, uint32_t id, stdin_streamer_t* streamer) {
+int call_create(call_t* self, uint32_t id, char* line, size_t len) {
     self->already_filled = 0;
     self->id = id;
 
-    if (stdin_streamer_run(streamer, self)) {
-        return -1; // eof
+    /**
+     * Sabemos que las lineas vienen bien formadas:
+     * <dest> <path> <interface> <method>([<args>])
+    */
+
+    int offset = 0;
+    param_t args;
+   
+    call_fill_param_from_line(&(self->dest), line, &offset, ' ', len);
+    call_fill_param_from_line(&(self->path), line, &offset, ' ', len);
+    call_fill_param_from_line(&(self->interface), line, &offset, ' ', len);
+    call_fill_param_from_line(&(self->method), line, &offset, '(', len);
+    call_fill_param_from_line(&(args), line, &offset, ')', len);
+
+    if (args.len) {
+        call_parameters_parser(self, args.string, args.len, ',');
+    } else {
+        self->n_params = 0;
+        self->params = NULL;
+        free(args.string);
     }
-
-    return 0;
-}
-
-int call_fill(void* context, char* buffer, size_t len) {
-    call_t* self = context;
-
-    switch (self->already_filled) {
-    case 0:
-        self->dest.len = (uint32_t) len;
-        self->dest.string = buffer;
-        break;
-
-    case 1:
-        self->path.len = (uint32_t) len;
-        self->path.string = buffer;
-        break;
-
-    case 2:
-        self->interface.len = (uint32_t) len;
-        self->interface.string = buffer;
-        break;
-
-    case 3:
-        self->method.len = (uint32_t) len;
-        self->method.string = buffer;
-        break;
-
-    case 4:
-        if (len == 0) { // no hay parametros
-            self->n_params = 0;
-            self->params = NULL;
-            free(buffer);
-        } else { // en buffer tenemos un string de los parametros
-            call_parameters_parser(self, buffer, len, PARAMS_DELIMITER);
-        }
-        break;
     
-    default: 
-        return -1;
-        break;
-    }
-
-    self->already_filled++;
     return 0;
 }
+
 
 int call_destroy(call_t* self) {
     if (self->dest.string) {
         free(self->dest.string);
     }
+    
     if (self->path.string) {
         free(self->path.string);
     }
+    
     if (self->interface.string) {
         free(self->interface.string);
     }
@@ -139,12 +136,6 @@ int call_destroy(call_t* self) {
         }
         free(self->params);
     }
-    
-    /*
-    if (self->msg) {
-        free(self->msg);
-    }
-    */
     
     return 0;
 }

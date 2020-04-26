@@ -51,8 +51,6 @@ int main(int argc, const char *argv[]) {
     }
     
 
-
-
     // --------------------------------------------------------
     // para este punto, tenemos que estar conectados
     // hacemos algo y despues sigue el curso

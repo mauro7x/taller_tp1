@@ -13,7 +13,7 @@
 
 
 // --------------------------------------------------------
-// definiciones
+// static definitions
 
 static int client_set_stdin(int argc, const char* argv[]) {
     if (argc==4) {
@@ -27,18 +27,32 @@ static int client_set_stdin(int argc, const char* argv[]) {
     return 0;
 }
 
+static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
+    int sent;
+
+    sent = socket_send(&(self->socket), msg, (size_t) len);
+    if (sent == -1) {
+        fprintf(stderr, "Error en el envio del mensaje.\n");
+        return -1;
+    } else {
+        fprintf(stdout, "Se enviaron %d bytes.\n", sent);
+    }
+
+    return 0;
+}
+
+
+// --------------------------------------------------------
+// public definitions
 
 int client_create(client_t* self, int argc, const char* argv[]) {
     self->hostname = argv[1];
     self->port = argv[2];
+    self->next_msg_id = 1;
 
     socket_t socket;
     socket_create(&socket);
     self->socket = socket;
-
-    stdin_streamer_t streamer;
-    stdin_streamer_create(&streamer, &call_fill);
-    self->streamer = streamer;
 
     if (client_set_stdin(argc, argv)) {
         fprintf(stderr, "Error in function: client_set_stdin. Error: no se puede abrir el archivo.");
@@ -47,7 +61,6 @@ int client_create(client_t* self, int argc, const char* argv[]) {
 
     return 0;
 }
-
 
 int client_connect(client_t* self) {
 
@@ -62,59 +75,63 @@ int client_connect(client_t* self) {
     return 0;
 }
 
-
-
-// --------------------------------------------------------
-
-static int client_send_call(client_t* self, uint32_t id) {
+/**
+ * CALLBACK del STDIN_STREAMER.
+ * Recibe una linea sin parsear, arma la call, y la envia.
+*/
+int client_create_call(void* context, char* buffer, size_t len) {
+    client_t* self = (client_t*) context;
+ 
     call_t call;
-    if (call_create(&call, id, &(self->streamer))) {
-        return EOF_ERROR;
-    }
+    call_create(&call, (self->next_msg_id)++, buffer, len);
 
     dbus_parser_t dbus_parser;
     dbus_parser_create(&dbus_parser, &call);
- 
 
-    /* for printing the msg
-  
+    /*
     for (int i = 0; i < dbus_parser.total_len; i++) {
         printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
     }
-
     */
 
+    // enviar call
+    client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
 
-    /* para enviarlo
-     
-    int sent;
-
-    sent = socket_send(&(self->socket), call.msg, (size_t) call.total_len);
-    if (sent == -1) {
-        fprintf(stderr, "Error en el envio del mensaje.\n");
-        return -1;
-    } else {
-        fprintf(stdout, "Se enviaron %d bytes.\n", sent);
-    }
-
-    */
 
     dbus_parser_destroy(&dbus_parser);
     call_destroy(&call);
+
     return 0;
 }
-
 
 int client_send_calls(client_t* self) {
-    uint32_t next_id = 1;
+    stdin_streamer_t streamer;
+    stdin_streamer_create(&streamer, &client_create_call);  
 
-    while(!feof(stdin)) {
-        client_send_call(self, next_id++);
-    }
-    
+    /**
+     * stdin_streamer leera una call, llama a client_create_call,
+     * quien crea la call y la llena con los datos, luego la parsea
+     * llamando a dbus_parser, para finalmente enviarla.
+    */
+    stdin_streamer_run(&streamer, self);  
+
+    stdin_streamer_destroy(&streamer);
     return 0;
 }
 
+int client_shutdown(client_t* self) {
+    if (socket_shutdown(&(self->socket))) {
+        fprintf(stderr, "Error apagando el socket.");
+        return -1;
+    }
+    return 0;
+}
+
+int client_destroy(client_t* self) {
+    socket_destroy(&(self->socket));
+    fclose(stdin);
+    return 0;
+}
 
 // --------------------------------------------------------
 
@@ -153,23 +170,3 @@ int server_testing_action(client_t* self) {
 }
 
 // --------------------------------------------------------
-
-
-int client_shutdown(client_t* self) {
-    if (socket_shutdown(&(self->socket))) {
-        fprintf(stderr, "Error apagando el socket.");
-        return -1;
-    }
-    return 0;
-}
-
-
-int client_destroy(client_t* self) {
-    socket_destroy(&(self->socket));
-    stdin_streamer_destroy(&(self->streamer));
-    fclose(stdin);
-    return 0;
-}
-
-// --------------------------------------------------------
-
