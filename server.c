@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 // defines
 #define MAX_CLIENTS_IN_QUEUE 10
@@ -52,12 +53,88 @@ int server_accept(server_t* self) {
     return 0;
 }
 
+static int server_receive_param(server_t* self) {
+
+    char desc[4];
+    uint32_t param_len;
+    char aux[4];
+    char* param;
+
+    char discard;
+
+    socket_recv(&(self->peer), desc, sizeof(desc));
+
+    socket_recv(&(self->peer), aux, sizeof(aux));
+    memcpy(&param_len, aux, sizeof(aux));
+    printf("param_len: %u\n", param_len);
+
+    param = (char*) malloc(sizeof(char) * (param_len+1));
+    param[param_len] = '\0'; 
+    socket_recv(&(self->peer), param, param_len);
+    puts(param);
+
+    socket_recv(&(self->peer), &discard, sizeof(discard));
+
+    if ((param_len+1) % 8) {
+        size_t padding = 8 - ((param_len+1) % 8);
+        for (int i = 0; i < padding; i++) {
+            socket_recv(&(self->peer), &discard, sizeof(discard));
+        }
+    }
+
+    free(param);
+
+    return 0;
+}
+
+
+static int server_receive_call(server_t* self) {
+    char header_bytes[3];
+    uint32_t body_len;
+    uint32_t id_msg;
+    uint32_t array_len;
+    char aux[4];
+
+    socket_recv(&(self->peer), header_bytes, sizeof(header_bytes));
+
+    socket_recv(&(self->peer), aux, sizeof(body_len));
+    memcpy(&body_len, aux, sizeof(aux));
+    printf("body length: %u\n", body_len);
+
+
+    socket_recv(&(self->peer), aux, sizeof(id_msg));
+    memcpy(&id_msg, aux, sizeof(aux));
+    printf("id_msg: %u\n", id_msg);
+
+    socket_recv(&(self->peer), aux, sizeof(array_len));
+    memcpy(&array_len, aux, sizeof(aux));
+    printf("array_len: %u\n", array_len);
+
+    server_receive_param(self);
+    server_receive_param(self);
+    server_receive_param(self);
+    server_receive_param(self);
+
+
+    return 0;
+}
+
 
 
 int server_receive_calls(server_t* self) {
 
-    
+    char endianness[1];
+    int s;
+    while ((s = socket_recv(&(self->peer), endianness, 1))) {
+        if (s == -1) {
+            fprintf(stderr, "Error in function: socket_recv.");
+            return -1;
+        }
 
+        server_receive_call(self);
+        
+        break;
+    }
 
     return 0;
 }

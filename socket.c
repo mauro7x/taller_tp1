@@ -183,9 +183,11 @@ int socket_recv(socket_t *self, char *buffer, size_t len) {
     while (total_received < len) {
         last_received = recv(self->fd, &buffer[total_received], len - total_received, 0);
 
-        if ((last_received == 0) || (last_received == -1)) { // el socket fue cerrado o hubo error
+        if (last_received == -1) {
             fprintf(stderr, "Error in function: socket_recv.\n");
             return -1;
+        } else if (last_received == 0) { // socket cerrado
+            return 0;
         } else {
             total_received += last_received;
         }

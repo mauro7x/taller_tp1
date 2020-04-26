@@ -121,7 +121,7 @@ int client_send_calls(client_t* self) {
 
 int client_shutdown(client_t* self) {
     if (socket_shutdown(&(self->socket))) {
-        fprintf(stderr, "Error apagando el socket.");
+        fprintf(stderr, "Error apagando el socket.\n");
         return -1;
     }
     return 0;
