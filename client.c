@@ -62,13 +62,15 @@ int client_connect(client_t* self) {
 
 
 // --------------------------------------------------------
+
 /*
 static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
 
-    // ENVIAR EL MENSAJE
+    printf("AGUANTE LA DROGA\n");
 
     return 0;
 }
+
 */
 
 
@@ -77,12 +79,10 @@ static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
  * Recibe una linea sin parsear, arma la call, y la envia.
 */
 int client_create_call(void* context, char* buffer, size_t len) {
-    // client_t* self = (client_t*) context;
-    
-    printf("\nSoy callback, me llamaron una vez.\n");
-    
-    // call_t call;
-    // call_create(&call, (self->next_msg_id)++, buffer, len);
+    client_t* self = (client_t*) context;
+ 
+    call_t call;
+    call_create(&call, (self->next_msg_id)++, buffer, len);
 
     /*
     dbus_parser_t dbus_parser;
@@ -91,11 +91,12 @@ int client_create_call(void* context, char* buffer, size_t len) {
     // enviar call
     client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
 
+
     dbus_parser_destroy(&dbus_parser);
-    
-    
-    call_destroy(&call);
+
     */
+    call_destroy(&call);
+
     return 0;
 }
 
@@ -139,23 +140,13 @@ static int client_send_call(client_t* self, uint32_t id) {
 
 int client_send_calls(client_t* self) {
     stdin_streamer_t streamer;
-    stdin_streamer_create(&streamer, &client_create_call);
-
-    
+    stdin_streamer_create(&streamer, &client_create_call);    
     stdin_streamer_run(&streamer, self);
+
     // enviar las calls
     
-
     stdin_streamer_destroy(&streamer);
     return 0;
-
-    /*
-    uint32_t next_id = 1;
-
-    while(!feof(stdin)) {
-        client_send_call(self, next_id++);
-    }
-    */
 }
 
 
