@@ -1,7 +1,7 @@
 // includes
 #include "client.h"
 #include "call.h"
-#include "dbus_parser.h"
+#include "dbus_client.h"
 #include "socket.h"
 #include "stdin_streamer.h"
 
@@ -105,23 +105,23 @@ int client_send_call(void* context, char* buffer, size_t len) {
     call_create(&call);
     call_fill(&call, buffer, len, (self->next_msg_id)++);
 
-    dbus_parser_t dbus_parser;
-    dbus_parser_create(&dbus_parser, &call);
+    dbus_client_t dbus_client;
+    dbus_client_create(&dbus_client, &call);
 
     /*
-    for (int i = 0; i < dbus_parser.total_len; i++) {
-        printf("msg[%i]: %d\n", i, dbus_parser.msg[i]);
+    for (int i = 0; i < dbus_client.total_len; i++) {
+        printf("msg[%i]: %d\n", i, dbus_client.msg[i]);
     }
     */
 
     // enviar call
-    client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
+    client_send_parsed_msg(self, dbus_client.msg, dbus_client.total_len);
 
     // recibimos e imprimimos respuesta
     client_print_server_reply(self, &call);
 
 
-    dbus_parser_destroy(&dbus_parser);
+    dbus_client_destroy(&dbus_client);
     call_destroy(&call);
     return 0;
 }
@@ -133,7 +133,7 @@ int client_send_calls(client_t* self) {
     /**
      * stdin_streamer leera una call, llama a client_create_call,
      * quien crea la call y la llena con los datos, luego la parsea
-     * llamando a dbus_parser, para finalmente enviarla.
+     * llamando a dbus_client, para finalmente enviarla.
     */
     stdin_streamer_run(&streamer, self);  
 

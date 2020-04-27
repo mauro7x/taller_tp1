@@ -1,5 +1,5 @@
-#ifndef __DBUS_PARSER_H__
-#define __DBUS_PARSER_H__
+#ifndef __DBUS_CLIENT_H__
+#define __DBUS_CLIENT_H__
 
 // --------------------------------------------------------
 // includes
@@ -10,21 +10,21 @@
 // --------------------------------------------------------
 // estructuras
 
-typedef struct dbus_parser {
+typedef struct dbus_client {
     call_t* call; // call to be parsed
 
     char* msg; // parsed msg
     uint32_t total_len;
     uint32_t array_len;
     uint32_t body_len;
-} dbus_parser_t;
+} dbus_client_t;
 
 // --------------------------------------------------------
 // declaraciones
 
-int dbus_parser_create(dbus_parser_t* self, call_t* call);
+int dbus_client_create(dbus_client_t* self, call_t* call);
 
-int dbus_parser_destroy(dbus_parser_t* self);
+int dbus_client_destroy(dbus_client_t* self);
 
 // --------------------------------------------------------
-#endif // __DBUS_PARSER_H__
+#endif // __DBUS_CLIENT_H__

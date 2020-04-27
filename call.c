@@ -91,11 +91,12 @@ static void call_parameters_parser(call_t* self, char* buffer, size_t len, char 
 }
 
 // --------------------------------------------------------
-// public definitions
+// Public API
 
 int call_create(call_t* self) {
     self->id = 0;
     self->endianness = 0;
+    self->dest.string = NULL;
     call_initialize_param(self, &(self->dest));
     call_initialize_param(self, &(self->path));
     call_initialize_param(self, &(self->interface));
@@ -105,6 +106,7 @@ int call_create(call_t* self) {
     return 0;
 }
 
+// client-side function
 int call_fill(call_t* self, char* line, size_t len, uint32_t id) {
     self->id = id;
     /**
@@ -137,7 +139,7 @@ int call_destroy(call_t* self) {
     if (self->dest.string) {
         free(self->dest.string);
     }
-    
+
     if (self->path.string) {
         free(self->path.string);
     }
@@ -160,4 +162,3 @@ int call_destroy(call_t* self) {
 }
 
 // --------------------------------------------------------
-
