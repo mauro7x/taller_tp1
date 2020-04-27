@@ -18,11 +18,13 @@
 // static definitions
 
 static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
-    int sent;
-
-    sent = socket_send(&(self->socket), msg, (size_t) len);
-    if (sent == -1) {
-        fprintf(stderr, "Error en el envio del mensaje.\n");
+    int s;
+    s = socket_send(&(self->socket), msg, (size_t) len);
+    if (s == -1) {
+        return -1;
+    } else if (s == 0) {
+        fprintf(stderr, "Error in function: client_send_parsed_msg. "
+                        "Socket was closed before expected.\n");
         return -1;
     }
 
@@ -37,8 +39,8 @@ static int client_print_server_reply(client_t* self, call_t* call) {
     if (s == -1) {
         return -1;
     } else if (s == 0) {
-        fprintf(stderr, "Error in function: server_send_recv_confirmation. "
-                        "Socket was closed before expected.");
+        fprintf(stderr, "Error in function: client_print_server_reply. "
+                        "Socket was closed before expected.\n");
         return -1;
     }
     

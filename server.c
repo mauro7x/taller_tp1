@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <arpa/inet.h>
 
 // defines
 #define MAX_CLIENTS_IN_QUEUE 10
@@ -77,7 +76,6 @@ static int server_receive_uint32_value(server_t* self, uint32_t* dest) {
 
     memcpy(dest, aux, size);
     free(aux);
-    // (*dest) = ntohl((*dest)); NO USAR. NO SIRVE.
 
     return 0;
 }
@@ -308,7 +306,7 @@ static int server_send_recv_confirmation(server_t* self) {
         return -1;
     } else if (s == 0) {
         fprintf(stderr, "Error in function: server_send_recv_confirmation. "
-                        "Socket was closed before expected.");
+                        "Socket was closed before expected.\n");
         return -1;
     }
 
