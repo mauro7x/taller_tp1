@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 // defines
-#define MAX_CLIENTS_IN_QUEUE 10
+#define MAX_CLIENTS_IN_QUEUE 1 // solo se conectara un cliente
 #define HOSTNAME 0
 #define SOCKET_HAS_BEEN_CLOSED 1
 
