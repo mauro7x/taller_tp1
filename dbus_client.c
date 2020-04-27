@@ -1,6 +1,8 @@
 // includes
 #include "dbus_client.h"
+
 #include "call.h"
+#include "socket.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +43,7 @@
 // setting the data types of the params
 
 static void dbus_client_set_dtypes(dbus_client_t* self) {
-    call_t* call = self->call;
+    call_t* call = &(self->call);
     
     call->endianness = ENDIANNESS;
 
@@ -71,6 +73,7 @@ static uint32_t dbus_client_set_declaration_len(size_t n_params, uint32_t* last_
     return len;
 }
 
+
 static uint32_t dbus_client_set_param_len(param_t* param, uint32_t* last_padding) {
     uint32_t len = param->len + PARAM_DESC_BYTES + END_BYTE;
     if (len % 8) {
@@ -81,8 +84,9 @@ static uint32_t dbus_client_set_param_len(param_t* param, uint32_t* last_padding
     return len;
 }
 
+
 static void dbus_client_set_array_len(dbus_client_t* self) {
-    call_t* call = self->call;
+    call_t* call = &(self->call);
     uint32_t array_len = 0;
     uint32_t last_padding = 0;
 
@@ -96,9 +100,10 @@ static void dbus_client_set_array_len(dbus_client_t* self) {
     self->array_len = array_len;
 }
 
+
 static void dbus_client_set_body_len(dbus_client_t* self) {
     uint32_t body_len = 0;
-    call_t* call = self->call;
+    call_t* call = &(self->call);
 
     for (int i = 0; i < call->n_params; i++) {
         body_len += BODY_ARG_LENGTH_BYTES;
@@ -107,6 +112,7 @@ static void dbus_client_set_body_len(dbus_client_t* self) {
 
     self->body_len = body_len;
 }
+
 
 static void dbus_client_set_total_length(dbus_client_t* self) {
     dbus_client_set_body_len(self);
@@ -129,10 +135,12 @@ static void dbus_client_copy_to_msg(char* dest, int* offset, void* src, size_t l
     (*offset) += len;
 }
 
+
 static void dbus_client_copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
     memset(dest + *offset, c, len);
     (*offset) += len;
 }
+
 
 static void dbus_client_copy_param_to_msg(param_t param, char* msg, int* offset) {
     // FORMATO:
@@ -154,12 +162,13 @@ static void dbus_client_copy_param_to_msg(param_t param, char* msg, int* offset)
     }
 }
 
+
 static void dbus_client_copy_header_desc_to_msg(dbus_client_t* self, char* msg, int* offset) {
     // FORMATO:
     // endianness,function,flags,protocol_version,body_length(uint32),
     // id(uint32),array_length(uint32);
 
-    call_t* call = self->call;
+    call_t* call = &(self->call);
 
     dbus_client_copy_c_to_msg(msg, offset, ENDIANNESS, 1);
     dbus_client_copy_c_to_msg(msg, offset, BYTE_FOR_METHOD_CALLS, 1);
@@ -171,12 +180,13 @@ static void dbus_client_copy_header_desc_to_msg(dbus_client_t* self, char* msg, 
     dbus_client_copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
 }
 
+
 static void dbus_client_copy_declaration_to_msg(dbus_client_t* self, param_t* param, char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),n_params,'s', ... (n_params times),
     // \0,[padding%8]
 
-    call_t* call = self->call;
+    call_t* call = &(self->call);
 
     dbus_client_copy_c_to_msg(msg, offset, DECLARATION_ID, 1);
     dbus_client_copy_c_to_msg(msg, offset, 1, 1);
@@ -196,12 +206,13 @@ static void dbus_client_copy_declaration_to_msg(dbus_client_t* self, param_t* pa
 
 }
 
+
 static void dbus_client_copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
     // copiamos los bytes iniciales
     dbus_client_copy_header_desc_to_msg(self, msg, offset);
 
     // array de parametros
-    call_t* call = self->call;
+    call_t* call = &(self->call);
     dbus_client_copy_param_to_msg(call->dest, msg, offset);
     dbus_client_copy_param_to_msg(call->path, msg, offset);
     dbus_client_copy_param_to_msg(call->interface, msg, offset);
@@ -213,8 +224,9 @@ static void dbus_client_copy_header_to_msg(dbus_client_t* self, char* msg, int* 
     }
 }
 
+
 static void dbus_client_copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
-    call_t* call = self->call;
+    call_t* call = &(self->call);
 
     for (int i = 0; i < (call->n_params); i++) {
         dbus_client_copy_to_msg(msg, offset, &(call->params[i].len), sizeof(call->params[i].len));
@@ -222,6 +234,7 @@ static void dbus_client_copy_body_to_msg(dbus_client_t* self, char* msg, int* of
         dbus_client_copy_c_to_msg(msg, offset, '\0', 1);
     }
 }
+
 
 static int dbus_client_create_msg(dbus_client_t* self) {
     // falta manejar errores
@@ -241,16 +254,72 @@ static int dbus_client_create_msg(dbus_client_t* self) {
 // --------------------------------------------------------
 // public definitions
 
-int dbus_client_create(dbus_client_t* self, call_t* call) {
-    self->call = call;
-    dbus_client_set_dtypes(self);
-    dbus_client_set_total_length(self);
-    dbus_client_create_msg(self);
+int dbus_client_create(dbus_client_t* self, socket_t* socket) {
+    call_create(&(self->call));
+    self->socket = socket;
+    self->msg = NULL;
+    self->total_len = 0;
+    self->array_len = 0;
+    self->body_len = 0;
 
     return 0;
 }
 
+
+int dbus_client_fill(dbus_client_t* self, char* buffer, size_t len, int id) {
+    if (call_fill(&(self->call), buffer, len, id)) {
+        return -1;
+    }
+
+    dbus_client_set_dtypes(self);
+    dbus_client_set_total_length(self);
+    
+    if (dbus_client_create_msg(self)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int dbus_client_send_call(dbus_client_t* self) {
+    int s;
+
+    s = socket_send(self->socket, self->msg, (size_t) self->total_len);
+    if (s == -1) {
+        return -1;
+    } else if (s == 0) {
+        fprintf(stderr, "Error in function: dbus_client_send_call. "
+                        "Socket was closed before expected.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int dbus_client_print_server_reply(dbus_client_t* self) {
+
+    int s;
+    char reply[3] = "";
+    s = socket_recv(self->socket, &(reply[0]), 3);
+    if (s == -1) {
+        return -1;
+    } else if (s == 0) {
+        fprintf(stderr, "Error in function: dbus_client_print_server_reply. "
+                        "Socket was closed before expected.\n");
+        return -1;
+    }
+    
+    printf("0x%04x: %s\n", self->call.id, reply);
+
+    return 0;
+}
+
+
 int dbus_client_destroy(dbus_client_t* self) {
+    call_destroy(&(self->call));
+
     if (self->msg) {
         free(self->msg);
     }

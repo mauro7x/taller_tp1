@@ -1,6 +1,5 @@
 // includes
 #include "call.h"
-#include "stdin_streamer.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -133,6 +132,7 @@ int call_fill(call_t* self, char* line, size_t len, uint32_t id) {
 
     return 0;
 }
+
 
 int call_destroy(call_t* self) {
 

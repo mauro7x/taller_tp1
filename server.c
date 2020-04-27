@@ -1,5 +1,6 @@
 // includes
 #include "server.h"
+
 #include "socket.h"
 #include "dbus_server.h"
 
@@ -70,6 +71,7 @@ int server_create(server_t* self, const char* port) {
     return 0;
 }
 
+
 int server_open(server_t* self) {
 
     if (socket_get_addresses(&(self->acceptor), self->hostname, self->port, true)) {
@@ -88,6 +90,7 @@ int server_open(server_t* self) {
 
 }
 
+
 int server_accept(server_t* self) {
     if (socket_accept(&(self->acceptor), &(self->peer))) {
         fprintf(stderr, "Error acceptando conexion entrante.");
@@ -95,6 +98,7 @@ int server_accept(server_t* self) {
     }
     return 0;
 }
+
 
 int server_receive_calls(server_t* self) {
     int s;
@@ -111,6 +115,7 @@ int server_receive_calls(server_t* self) {
     return 0;
 }
 
+
 int server_shutdown(server_t* self) {
     if (socket_shutdown(&(self->acceptor))) {
         fprintf(stderr, "Error in function: socket_shutdown (S)\n");
@@ -125,10 +130,12 @@ int server_shutdown(server_t* self) {
     return 0;
 }
 
+
 int server_destroy(server_t* self) {
     socket_destroy(&(self->acceptor));
     socket_destroy(&(self->peer));
     return 0;
 }
+
 
 // --------------------------------------------------------

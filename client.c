@@ -1,6 +1,6 @@
 // includes
 #include "client.h"
-#include "call.h"
+
 #include "dbus_client.h"
 #include "socket.h"
 #include "stdin_streamer.h"
@@ -12,42 +12,6 @@
 
 // defines
 #define EOF_ERROR 1
-
-
-// --------------------------------------------------------
-// static definitions
-
-static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
-    int s;
-    s = socket_send(&(self->socket), msg, (size_t) len);
-    if (s == -1) {
-        return -1;
-    } else if (s == 0) {
-        fprintf(stderr, "Error in function: client_send_parsed_msg. "
-                        "Socket was closed before expected.\n");
-        return -1;
-    }
-
-    return 0;
-}
-
-static int client_print_server_reply(client_t* self, call_t* call) {
-    
-    int s;
-    char reply[3] = "";
-    s = socket_recv(&(self->socket), &(reply[0]), 3);
-    if (s == -1) {
-        return -1;
-    } else if (s == 0) {
-        fprintf(stderr, "Error in function: client_print_server_reply. "
-                        "Socket was closed before expected.\n");
-        return -1;
-    }
-    
-    printf("0x%04x: %s\n", call->id, reply);
-
-    return 0;
-}
 
 
 // --------------------------------------------------------
@@ -100,13 +64,11 @@ int client_connect(client_t* self) {
 */
 int client_send_call(void* context, char* buffer, size_t len) {
     client_t* self = (client_t*) context;
- 
-    call_t call;
-    call_create(&call);
-    call_fill(&call, buffer, len, (self->next_msg_id)++);
 
     dbus_client_t dbus_client;
-    dbus_client_create(&dbus_client, &call);
+    dbus_client_create(&dbus_client, &(self->socket));
+
+    dbus_client_fill(&dbus_client, buffer, len, (self->next_msg_id)++);
 
     /*
     for (int i = 0; i < dbus_client.total_len; i++) {
@@ -114,17 +76,19 @@ int client_send_call(void* context, char* buffer, size_t len) {
     }
     */
 
-    // enviar call
-    client_send_parsed_msg(self, dbus_client.msg, dbus_client.total_len);
-
-    // recibimos e imprimimos respuesta
-    client_print_server_reply(self, &call);
-
-
+    // enviar call    
+    if (dbus_client_send_call(&dbus_client)) {
+        return -1;
+    }
+    
+    if (dbus_client_print_server_reply(&dbus_client)) {
+        return -1;
+    }
+    
     dbus_client_destroy(&dbus_client);
-    call_destroy(&call);
     return 0;
 }
+
 
 int client_send_calls(client_t* self) {
     stdin_streamer_t streamer;
@@ -141,6 +105,7 @@ int client_send_calls(client_t* self) {
     return 0;
 }
 
+
 int client_shutdown(client_t* self) {
     if (socket_shutdown(&(self->socket))) {
         fprintf(stderr, "Error apagando el socket.\n");
@@ -148,6 +113,7 @@ int client_shutdown(client_t* self) {
     }
     return 0;
 }
+
 
 int client_destroy(client_t* self) {
     if (socket_destroy(&(self->socket))) { 
@@ -159,5 +125,6 @@ int client_destroy(client_t* self) {
     }
     return 0;
 }
+
 
 // --------------------------------------------------------

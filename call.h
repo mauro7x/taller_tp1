@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "stdin_streamer.h"
-
 // --------------------------------------------------------
 // structs
 
