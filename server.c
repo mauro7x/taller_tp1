@@ -350,14 +350,20 @@ static int server_receive_and_process_call(server_t* self) {
 // --------------------------------------------------------
 // public definitions
 
-int server_create(server_t* self, const char* argv[]) {
-    self->port = argv[1];
+int server_create(server_t* self, const char* port) {
+    self->port = port;
     self->hostname = HOSTNAME;
 
     // socket aceptador, y socket peer
     socket_t socket, peer_socket;
-    socket_create(&socket);
-    socket_create(&peer_socket);
+    if (socket_create(&socket)) {
+        fprintf(stderr, "Error in function: socket_create.\n");
+        return -1;
+    }
+    if (socket_create(&peer_socket)) {
+        fprintf(stderr, "Error in function: socket_create.\n");
+        return -1;
+    }
     self->acceptor = socket; 
     self->peer = peer_socket;
 
@@ -390,7 +396,6 @@ int server_accept(server_t* self) {
     return 0;
 }
 
-
 int server_receive_calls(server_t* self) {
     int s;
 
@@ -405,7 +410,6 @@ int server_receive_calls(server_t* self) {
 
     return 0;
 }
-
 
 int server_shutdown(server_t* self) {
     if (socket_shutdown(&(self->acceptor))) {

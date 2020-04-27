@@ -18,7 +18,7 @@ typedef struct server {
 // declaraciones
 
 
-int server_create(server_t* self, const char* argv[]);
+int server_create(server_t* self, const char* port);
 
 int server_open(server_t* self);
 

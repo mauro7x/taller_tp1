@@ -18,7 +18,9 @@ typedef struct client {
 // --------------------------------------------------------
 // declaraciones
 
-int client_create(client_t* self, int argc, const char* argv[]);
+int client_create(client_t* self, const char* hostname, const char* port);
+
+int client_set_input_file(const char* path_to_file);
 
 int client_connect(client_t* self);
 

@@ -17,18 +17,6 @@
 // --------------------------------------------------------
 // static definitions
 
-static int client_set_stdin(int argc, const char* argv[]) {
-    if (argc==4) {
-        FILE *fp;
-        if ((fp = fopen(argv[3], "r")) == NULL) {
-            return -1;
-        }
-        stdin = fp;
-    }
-
-    return 0;
-}
-
 static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
     int sent;
 
@@ -41,11 +29,11 @@ static int client_send_parsed_msg(client_t* self, char* msg, uint32_t len) {
     return 0;
 }
 
-static int client_print_server_response(client_t* self) {
-    /*
+static int client_print_server_reply(client_t* self, call_t* call) {
+    
     int s;
-    char response[3] = "";
-    s = socket_recv(&(self->socket), &(response[0]), 3);
+    char reply[3] = "";
+    s = socket_recv(&(self->socket), &(reply[0]), 3);
     if (s == -1) {
         return -1;
     } else if (s == 0) {
@@ -53,7 +41,8 @@ static int client_print_server_response(client_t* self) {
                         "Socket was closed before expected.");
         return -1;
     }
-    */
+    
+    printf("0x%04x: %s\n", call->id, reply);
 
     return 0;
 }
@@ -62,22 +51,33 @@ static int client_print_server_response(client_t* self) {
 // --------------------------------------------------------
 // public definitions
 
-int client_create(client_t* self, int argc, const char* argv[]) {
-    self->hostname = argv[1];
-    self->port = argv[2];
+int client_create(client_t* self, const char* hostname, const char* port) {
+    self->hostname = hostname;
+    self->port = port;
     self->next_msg_id = 1;
 
     socket_t socket;
-    socket_create(&socket);
-    self->socket = socket;
-
-    if (client_set_stdin(argc, argv)) {
-        fprintf(stderr, "Error in function: client_set_stdin. Error: no se puede abrir el archivo.");
+    if (socket_create(&socket)) {
+        fprintf(stderr, "Error in function: socket_create.\n");
         return -1;
     }
+    self->socket = socket;
+    return 0;
+}
+
+
+int client_set_input_file(const char* path_to_file) {
+    FILE *fp;
+    if ((fp = fopen(path_to_file, "r")) == NULL) {
+        fprintf(stderr, "Error in function: client_set_stdin. "
+                        "Error: no se puede abrir el archivo.");
+        return -1;
+    }
+    stdin = fp;
 
     return 0;
 }
+
 
 int client_connect(client_t* self) {
 
@@ -116,7 +116,7 @@ int client_send_call(void* context, char* buffer, size_t len) {
     client_send_parsed_msg(self, dbus_parser.msg, dbus_parser.total_len);
 
     // recibimos e imprimimos respuesta
-    client_print_server_response(self);
+    client_print_server_reply(self, &call);
 
 
     dbus_parser_destroy(&dbus_parser);
@@ -148,8 +148,13 @@ int client_shutdown(client_t* self) {
 }
 
 int client_destroy(client_t* self) {
-    socket_destroy(&(self->socket));
-    fclose(stdin);
+    if (socket_destroy(&(self->socket))) { 
+        return -1;
+    }
+
+    if (fclose(stdin)) {
+        return -1;
+    }
     return 0;
 }
 
