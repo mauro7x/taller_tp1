@@ -3,28 +3,18 @@
 #include "server.h"
 
 // defines
-#define USAGE_ERROR 1           // problemas con el uso de la aplicacion
-#define OPEN_ERROR 2            // problemas con la abertura del servidor
-#define ACCEPT_ERROR 3          // problemas aceptando cliente
-#define TEST_ERROR 4            // problemas con las acciones en test
+#define USAGE_ERROR 1
+#define CREATE_ERROR 2
+#define OPEN_ERROR 3
+#define ACCEPT_ERROR 4
+#define RECEIVE_ERROR 5
 
-#define SHUTDOWN_ERROR 10       // problemas con el shutdown
-#define DESTROY_ERROR 11        // problemas al destruir el server
+#define SHUTDOWN_ERROR 10
+#define DESTROY_ERROR 11
 
 // --------------------------------------------------------
 
 int main(int argc, const char *argv[]) {
-    /*
-    PSEUDO CODIGO IDEA:
-
-    2. Procesar cada call recibida.
-        2.1. Procesamiento de call.
-        ...
-        2.n-1. Enviar OK al cliente en caso de ejecucion correcta.
-        2.n. Imprimir por stdout la salida pedida.
-
-    */
-
     if (argc != 2) {
         fprintf(stderr, "Usage error. Usage: ./server <port>\n");
         return USAGE_ERROR;
@@ -32,7 +22,9 @@ int main(int argc, const char *argv[]) {
 
     server_t server;
 
-    server_create(&server, argv); 
+    if (server_create(&server, argv[1])) {
+        return CREATE_ERROR;
+    }
 
     if (server_open(&server)) {
         server_destroy(&server);
@@ -43,21 +35,13 @@ int main(int argc, const char *argv[]) {
         server_destroy(&server);
         return ACCEPT_ERROR;
     }
-    
-    // --------------------------------------------------------
-    // para este punto, tenemos que estar conectados
-    // hacemos algo y despues sigue el curso
-    // vamos a recibir un mensaje
 
-    /*
-    if (server_testing_action(&server)) {
+    if (server_receive_calls(&server)) {
+        server_shutdown(&server);
         server_destroy(&server);
-        return TEST_ERROR;
+        return RECEIVE_ERROR;
     }
-    */
-
-    // --------------------------------------------------------
-
+    
     if (server_shutdown(&server)) {
         server_destroy(&server);
         return SHUTDOWN_ERROR;
@@ -67,6 +51,7 @@ int main(int argc, const char *argv[]) {
         return DESTROY_ERROR;
     }
 
+    printf("\nCHAMPIONS\n");
     return 0;
 }
 

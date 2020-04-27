@@ -12,6 +12,15 @@
 // --------------------------------------------------------
 // static definitions for parsing
 
+// initialize params
+
+static void call_initialize_param(call_t* self, param_t* param) {
+    param->data_type = 0;
+    param->id = 0;
+    param->len = 0;
+    param->string = NULL;
+}
+
 // line parser
 
 static void call_fill_param_from_line(param_t* param, char* line, int* offset, char delimiter, size_t max_len) {
@@ -48,7 +57,7 @@ static size_t call_parameters_counter(char* buffer, size_t len, char delimiter) 
 
 static void call_parameters_fill(param_t* params, char* buffer, size_t len, char delimiter) {
     int last_delimiter = 0;
-    size_t current_param_len = 0;
+    uint32_t current_param_len = 0;
     size_t params_added = 0;
 
     for (int i = 0; i < len; i++) {
@@ -59,7 +68,7 @@ static void call_parameters_fill(param_t* params, char* buffer, size_t len, char
             char* current_param = (char*) malloc(sizeof(char)*(current_param_len));
             strncpy(current_param, buffer + last_delimiter, current_param_len);
             params[params_added].string = current_param;
-            params[params_added].len = (uint32_t) current_param_len;
+            params[params_added].len = current_param_len;
             current_param_len = 0;
             params_added++;
             last_delimiter = i+1;
@@ -84,10 +93,20 @@ static void call_parameters_parser(call_t* self, char* buffer, size_t len, char 
 // --------------------------------------------------------
 // public definitions
 
-int call_create(call_t* self, uint32_t id, char* line, size_t len) {
-    self->already_filled = 0;
-    self->id = id;
+int call_create(call_t* self) {
+    self->id = 0;
+    self->endianness = 0;
+    call_initialize_param(self, &(self->dest));
+    call_initialize_param(self, &(self->path));
+    call_initialize_param(self, &(self->interface));
+    call_initialize_param(self, &(self->method));
+    self->params = NULL;
+    
+    return 0;
+}
 
+int call_fill(call_t* self, char* line, size_t len, uint32_t id) {
+    self->id = id;
     /**
      * Sabemos que las lineas vienen bien formadas:
      * <dest> <path> <interface> <method>([<args>])
@@ -109,12 +128,12 @@ int call_create(call_t* self, uint32_t id, char* line, size_t len) {
         self->params = NULL;
         free(args.string);
     }
-    
+
     return 0;
 }
 
-
 int call_destroy(call_t* self) {
+
     if (self->dest.string) {
         free(self->dest.string);
     }

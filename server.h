@@ -18,19 +18,16 @@ typedef struct server {
 // declaraciones
 
 
-int server_create(server_t* self, const char* argv[]);
+int server_create(server_t* self, const char* port);
 
 int server_open(server_t* self);
 
 int server_accept(server_t* self);
 
+int server_receive_calls(server_t* self);
+
 int server_shutdown(server_t* self);
 
 int server_destroy(server_t* self);
 
-// --------------------------------------------------------
-
-int server_testing_action(server_t* server);
-
-// --------------------------------------------------------
 #endif // __SERVER_H__

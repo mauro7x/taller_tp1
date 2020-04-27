@@ -124,8 +124,7 @@ int socket_accept(socket_t* self, socket_t* accepted_socket) {
         close(self->fd);
         return -1;
     }
-
-    fprintf(stdout, "Se ha conectado un cliente!\n"); // borrar para el release
+    
     return 0;
 }
 
@@ -164,9 +163,11 @@ int socket_send(socket_t *self, char *buffer, size_t len) {
     while (total_sent < len) {
         last_sent = send(self->fd, &buffer[total_sent], len - total_sent, MSG_NOSIGNAL);
 
-        if ((last_sent == 0) || (last_sent == -1)) { // el socket fue cerrado o hubo error
+        if (last_sent == -1) {
             fprintf(stderr, "Error in function: socket_send.\n");
             return -1;
+        } else if (last_sent == 0) {
+            return 0;
         } else { // se enviaron last_sent bytes.
             total_sent += last_sent;
         }
@@ -183,9 +184,11 @@ int socket_recv(socket_t *self, char *buffer, size_t len) {
     while (total_received < len) {
         last_received = recv(self->fd, &buffer[total_received], len - total_received, 0);
 
-        if ((last_received == 0) || (last_received == -1)) { // el socket fue cerrado o hubo error
+        if (last_received == -1) {
             fprintf(stderr, "Error in function: socket_recv.\n");
             return -1;
+        } else if (last_received == 0) { // socket cerrado
+            return 0;
         } else {
             total_received += last_received;
         }
@@ -208,6 +211,5 @@ int socket_shutdown(socket_t *self) {
 int socket_destroy(socket_t *self) {
     return 0;
 }
-
 
 // --------------------------------------------------------
