@@ -13,7 +13,7 @@
 
 // initialize params
 
-static void call_initialize_param(call_t* self, param_t* param) {
+static void _initialize_param(call_t* self, param_t* param) {
     param->data_type = 0;
     param->id = 0;
     param->len = 0;
@@ -22,7 +22,7 @@ static void call_initialize_param(call_t* self, param_t* param) {
 
 // line parser
 
-static void call_fill_param_from_line(param_t* param, char* line, int* offset, char delimiter, size_t max_len) {
+static void _fill_param_from_line(param_t* param, char* line, int* offset, char delimiter, size_t max_len) {
 
    uint32_t param_len = 0;
    int delimiter_found = 0;
@@ -42,7 +42,7 @@ static void call_fill_param_from_line(param_t* param, char* line, int* offset, c
 
 // parameters parser
 
-static size_t call_parameters_counter(char* buffer, size_t len, char delimiter) {
+static size_t _count_params(char* buffer, size_t len, char delimiter) {
     size_t n_params = 1;
 
     for (int i = 0; i < len; i++) { // cuento cuantos hay
@@ -54,7 +54,7 @@ static size_t call_parameters_counter(char* buffer, size_t len, char delimiter) 
     return n_params;
 }
 
-static void call_parameters_fill(param_t* params, char* buffer, size_t len, char delimiter) {
+static void _fill_params(param_t* params, char* buffer, size_t len, char delimiter) {
     int last_delimiter = 0;
     uint32_t current_param_len = 0;
     size_t params_added = 0;
@@ -78,11 +78,11 @@ static void call_parameters_fill(param_t* params, char* buffer, size_t len, char
     }
 }
 
-static void call_parameters_parser(call_t* self, char* buffer, size_t len, char delimiter) {
+static void _parameters_parser(call_t* self, char* buffer, size_t len, char delimiter) {
 
-    size_t n_params = call_parameters_counter(buffer, len, delimiter);
+    size_t n_params = _count_params(buffer, len, delimiter);
     param_t* params = (param_t*) malloc(sizeof(param_t)*n_params);
-    call_parameters_fill(params, buffer, len, delimiter);
+    _fill_params(params, buffer, len, delimiter);
 
     self->n_params = n_params;
     self->params = params;
@@ -96,10 +96,10 @@ int call_create(call_t* self) {
     self->id = 0;
     self->endianness = 0;
     self->dest.string = NULL;
-    call_initialize_param(self, &(self->dest));
-    call_initialize_param(self, &(self->path));
-    call_initialize_param(self, &(self->interface));
-    call_initialize_param(self, &(self->method));
+    _initialize_param(self, &(self->dest));
+    _initialize_param(self, &(self->path));
+    _initialize_param(self, &(self->interface));
+    _initialize_param(self, &(self->method));
     self->params = NULL;
     
     return 0;
@@ -116,14 +116,14 @@ int call_fill(call_t* self, char* line, size_t len, uint32_t id) {
     int offset = 0;
     param_t args;
    
-    call_fill_param_from_line(&(self->dest), line, &offset, ' ', len);
-    call_fill_param_from_line(&(self->path), line, &offset, ' ', len);
-    call_fill_param_from_line(&(self->interface), line, &offset, ' ', len);
-    call_fill_param_from_line(&(self->method), line, &offset, '(', len);
-    call_fill_param_from_line(&(args), line, &offset, ')', len);
+    _fill_param_from_line(&(self->dest), line, &offset, ' ', len);
+    _fill_param_from_line(&(self->path), line, &offset, ' ', len);
+    _fill_param_from_line(&(self->interface), line, &offset, ' ', len);
+    _fill_param_from_line(&(self->method), line, &offset, '(', len);
+    _fill_param_from_line(&(args), line, &offset, ')', len);
 
     if (args.len) {
-        call_parameters_parser(self, args.string, args.len, ',');
+        _parameters_parser(self, args.string, args.len, ',');
     } else {
         self->n_params = 0;
         self->params = NULL;

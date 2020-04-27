@@ -15,7 +15,7 @@
 
 
 // --------------------------------------------------------
-// public definitions
+// Public API
 
 int client_create(client_t* self, const char* hostname, const char* port) {
     self->hostname = hostname;

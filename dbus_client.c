@@ -42,7 +42,7 @@
 
 // setting the data types of the params
 
-static void dbus_client_set_dtypes(dbus_client_t* self) {
+static void _set_dtypes(dbus_client_t* self) {
     call_t* call = &(self->call);
     
     call->endianness = ENDIANNESS;
@@ -60,7 +60,7 @@ static void dbus_client_set_dtypes(dbus_client_t* self) {
 
 // setting array, body, and total len of the msg
 
-static uint32_t dbus_client_set_declaration_len(size_t n_params, uint32_t* last_padding) {
+static uint32_t _set_declaration_len(size_t n_params, uint32_t* last_padding) {
     uint32_t len = 0;
     if (n_params) {
         len = n_params + DECLARATION_DESC_BYTES + END_BYTE;
@@ -74,7 +74,7 @@ static uint32_t dbus_client_set_declaration_len(size_t n_params, uint32_t* last_
 }
 
 
-static uint32_t dbus_client_set_param_len(param_t* param, uint32_t* last_padding) {
+static uint32_t _set_param_len(param_t* param, uint32_t* last_padding) {
     uint32_t len = param->len + PARAM_DESC_BYTES + END_BYTE;
     if (len % 8) {
         (*last_padding) = 8 - (len % 8);
@@ -85,23 +85,23 @@ static uint32_t dbus_client_set_param_len(param_t* param, uint32_t* last_padding
 }
 
 
-static void dbus_client_set_array_len(dbus_client_t* self) {
+static void _set_array_len(dbus_client_t* self) {
     call_t* call = &(self->call);
     uint32_t array_len = 0;
     uint32_t last_padding = 0;
 
-    array_len += dbus_client_set_param_len(&(call->dest), &last_padding);
-    array_len += dbus_client_set_param_len(&(call->path), &last_padding);
-    array_len += dbus_client_set_param_len(&(call->interface), &last_padding);
-    array_len += dbus_client_set_param_len(&(call->method), &last_padding);
-    array_len += dbus_client_set_declaration_len(call->n_params, &last_padding);
+    array_len += _set_param_len(&(call->dest), &last_padding);
+    array_len += _set_param_len(&(call->path), &last_padding);
+    array_len += _set_param_len(&(call->interface), &last_padding);
+    array_len += _set_param_len(&(call->method), &last_padding);
+    array_len += _set_declaration_len(call->n_params, &last_padding);
     
     array_len -= last_padding; // sacamos el ultimo padding
     self->array_len = array_len;
 }
 
 
-static void dbus_client_set_body_len(dbus_client_t* self) {
+static void _set_body_len(dbus_client_t* self) {
     uint32_t body_len = 0;
     call_t* call = &(self->call);
 
@@ -114,9 +114,9 @@ static void dbus_client_set_body_len(dbus_client_t* self) {
 }
 
 
-static void dbus_client_set_total_length(dbus_client_t* self) {
-    dbus_client_set_body_len(self);
-    dbus_client_set_array_len(self);
+static void _set_total_length(dbus_client_t* self) {
+    _set_body_len(self);
+    _set_array_len(self);
 
     uint32_t header_length = self->array_len + HEADER_DESC_BYTES;
 
@@ -130,121 +130,121 @@ static void dbus_client_set_total_length(dbus_client_t* self) {
 
 // creating the parsed call msg
 
-static void dbus_client_copy_to_msg(char* dest, int* offset, void* src, size_t len) {
+static void _copy_to_msg(char* dest, int* offset, void* src, size_t len) {
     memcpy(dest + *offset, src, len);
     (*offset) += len;
 }
 
 
-static void dbus_client_copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
+static void _copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
     memset(dest + *offset, c, len);
     (*offset) += len;
 }
 
 
-static void dbus_client_copy_param_to_msg(param_t param, char* msg, int* offset) {
+static void _copy_param_to_msg(param_t param, char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),len_param(uint32),param(len_param bytes),
     // \0,[padding%8]
 
-    dbus_client_copy_to_msg(msg, offset, &(param.id), sizeof(param.id));
-    dbus_client_copy_c_to_msg(msg, offset, 1, 1);
-    dbus_client_copy_to_msg(msg, offset, &(param.data_type), sizeof(param.data_type));
-    dbus_client_copy_c_to_msg(msg, offset, '\0', 1);
+    _copy_to_msg(msg, offset, &(param.id), sizeof(param.id));
+    _copy_c_to_msg(msg, offset, 1, 1);
+    _copy_to_msg(msg, offset, &(param.data_type), sizeof(param.data_type));
+    _copy_c_to_msg(msg, offset, '\0', 1);
     
-    dbus_client_copy_to_msg(msg, offset, &(param.len), sizeof(param.len));
-    dbus_client_copy_to_msg(msg, offset, param.string, param.len);
-    dbus_client_copy_c_to_msg(msg, offset, '\0', 1);
+    _copy_to_msg(msg, offset, &(param.len), sizeof(param.len));
+    _copy_to_msg(msg, offset, param.string, param.len);
+    _copy_c_to_msg(msg, offset, '\0', 1);
 
     if ((param.len + 1) % 8) {
         size_t bytes_of_padding = 8 - ((param.len + 1) % 8);
-        dbus_client_copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
+        _copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
     }
 }
 
 
-static void dbus_client_copy_header_desc_to_msg(dbus_client_t* self, char* msg, int* offset) {
+static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg, int* offset) {
     // FORMATO:
     // endianness,function,flags,protocol_version,body_length(uint32),
     // id(uint32),array_length(uint32);
 
     call_t* call = &(self->call);
 
-    dbus_client_copy_c_to_msg(msg, offset, ENDIANNESS, 1);
-    dbus_client_copy_c_to_msg(msg, offset, BYTE_FOR_METHOD_CALLS, 1);
-    dbus_client_copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
-    dbus_client_copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
+    _copy_c_to_msg(msg, offset, ENDIANNESS, 1);
+    _copy_c_to_msg(msg, offset, BYTE_FOR_METHOD_CALLS, 1);
+    _copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
+    _copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
 
-    dbus_client_copy_to_msg(msg, offset, &(self->body_len), sizeof(self->body_len));
-    dbus_client_copy_to_msg(msg, offset, &(call->id), sizeof(call->id));
-    dbus_client_copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
+    _copy_to_msg(msg, offset, &(self->body_len), sizeof(self->body_len));
+    _copy_to_msg(msg, offset, &(call->id), sizeof(call->id));
+    _copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
 }
 
 
-static void dbus_client_copy_declaration_to_msg(dbus_client_t* self, param_t* param, char* msg, int* offset) {
+static void _copy_declaration_to_msg(dbus_client_t* self, param_t* param, char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),n_params,'s', ... (n_params times),
     // \0,[padding%8]
 
     call_t* call = &(self->call);
 
-    dbus_client_copy_c_to_msg(msg, offset, DECLARATION_ID, 1);
-    dbus_client_copy_c_to_msg(msg, offset, 1, 1);
-    dbus_client_copy_c_to_msg(msg, offset, DECLARATION_DATA_TYPE, 1);
-    dbus_client_copy_c_to_msg(msg, offset, '\0', 1);
+    _copy_c_to_msg(msg, offset, DECLARATION_ID, 1);
+    _copy_c_to_msg(msg, offset, 1, 1);
+    _copy_c_to_msg(msg, offset, DECLARATION_DATA_TYPE, 1);
+    _copy_c_to_msg(msg, offset, '\0', 1);
 
-    dbus_client_copy_c_to_msg(msg, offset, call->n_params, 1);
+    _copy_c_to_msg(msg, offset, call->n_params, 1);
     for (int i = 0; i < call->n_params; i++) {
-        dbus_client_copy_c_to_msg(msg, offset, 's', 1);
+        _copy_c_to_msg(msg, offset, 's', 1);
     }
-    dbus_client_copy_c_to_msg(msg, offset, '\0', 1);
+    _copy_c_to_msg(msg, offset, '\0', 1);
 
     if ((*offset) % 8) {
         size_t bytes_of_padding = 8 - ((*offset) % 8);
-        dbus_client_copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
+        _copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
     }    
 
 }
 
 
-static void dbus_client_copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
+static void _copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
     // copiamos los bytes iniciales
-    dbus_client_copy_header_desc_to_msg(self, msg, offset);
+    _copy_header_desc_to_msg(self, msg, offset);
 
     // array de parametros
     call_t* call = &(self->call);
-    dbus_client_copy_param_to_msg(call->dest, msg, offset);
-    dbus_client_copy_param_to_msg(call->path, msg, offset);
-    dbus_client_copy_param_to_msg(call->interface, msg, offset);
-    dbus_client_copy_param_to_msg(call->method, msg, offset);
+    _copy_param_to_msg(call->dest, msg, offset);
+    _copy_param_to_msg(call->path, msg, offset);
+    _copy_param_to_msg(call->interface, msg, offset);
+    _copy_param_to_msg(call->method, msg, offset);
 
     // firma (si hay)
     if (call->n_params) {
-        dbus_client_copy_declaration_to_msg(self, call->params, msg, offset);
+        _copy_declaration_to_msg(self, call->params, msg, offset);
     }
 }
 
 
-static void dbus_client_copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
+static void _copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
     call_t* call = &(self->call);
 
     for (int i = 0; i < (call->n_params); i++) {
-        dbus_client_copy_to_msg(msg, offset, &(call->params[i].len), sizeof(call->params[i].len));
-        dbus_client_copy_to_msg(msg, offset, call->params[i].string, call->params[i].len);
-        dbus_client_copy_c_to_msg(msg, offset, '\0', 1);
+        _copy_to_msg(msg, offset, &(call->params[i].len), sizeof(call->params[i].len));
+        _copy_to_msg(msg, offset, call->params[i].string, call->params[i].len);
+        _copy_c_to_msg(msg, offset, '\0', 1);
     }
 }
 
 
-static int dbus_client_create_msg(dbus_client_t* self) {
+static int _create_msg(dbus_client_t* self) {
     // falta manejar errores
     
     char* msg = (char*) malloc(self->total_len);
     memset(msg, '/', self->total_len);
 
     int i = 0;
-    dbus_client_copy_header_to_msg(self, msg, &i);
-    dbus_client_copy_body_to_msg(self, msg, &i);
+    _copy_header_to_msg(self, msg, &i);
+    _copy_body_to_msg(self, msg, &i);
 
     self->msg = msg;
     return 0;
@@ -271,10 +271,10 @@ int dbus_client_fill(dbus_client_t* self, char* buffer, size_t len, int id) {
         return -1;
     }
 
-    dbus_client_set_dtypes(self);
-    dbus_client_set_total_length(self);
+    _set_dtypes(self);
+    _set_total_length(self);
     
-    if (dbus_client_create_msg(self)) {
+    if (_create_msg(self)) {
         return -1;
     }
 

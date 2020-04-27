@@ -16,7 +16,7 @@
 // --------------------------------------------------------
 // static definitions
 
-static int server_receive_and_process_call(server_t* self) {
+static int _receive_and_process_call(server_t* self) {
     // Verificamos si viene otra call, leyendo el primer byte
     int s;
     char r;
@@ -104,7 +104,7 @@ int server_receive_calls(server_t* self) {
     int s;
 
     do {
-        s = server_receive_and_process_call(self);
+        s = _receive_and_process_call(self);
     } while (s == 0);
 
     if (s != SOCKET_HAS_BEEN_CLOSED) {

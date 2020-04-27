@@ -19,8 +19,38 @@ std=c99
 
 #include "socket.h"
 
+
 // --------------------------------------------------------
-// definiciones
+// static definitions
+
+static int _fix_timeout(socket_t* self) {
+    int val = 1;
+    if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
+        fprintf(stderr, "Error in function: _fix_timeout.\n");
+        freeaddrinfo(self->addresses_to_try);
+        close(self->fd);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int _set_fd(socket_t* self, addrinfo_t* address) {
+    self->fd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
+
+    if (self->fd == -1) { 
+        fprintf(stderr, "Error in function: _set_fd. Error: %s\n", strerror(errno));
+        freeaddrinfo(self->addresses_to_try);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+// --------------------------------------------------------
+// PUBLIC API
 
 int socket_create(socket_t *self) {
     if (!self) {
@@ -54,42 +84,16 @@ int socket_get_addresses(socket_t *self, const char* hostname, const char* port,
     return 0;
 }
 
-
-static int socket_set_fd(socket_t* self, addrinfo_t* address) {
-    self->fd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
-
-    if (self->fd == -1) { 
-        fprintf(stderr, "Error in function: socket_set_fd. Error: %s\n", strerror(errno));
-        freeaddrinfo(self->addresses_to_try);
-        return -1;
-    }
-
-    return 0;
-}
-
-
 // --------------------------------------------------------
 // server-side functions
 
-static int socket_fix_timeout(socket_t* self) {
-    int val = 1;
-    if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
-        fprintf(stderr, "Error in function: socket_fix_timeout.\n");
-        freeaddrinfo(self->addresses_to_try);
-        close(self->fd);
-        return -1;
-    }
-
-    return 0;
-}
-
 
 int socket_bind(socket_t* self, const char* port) {
-    if (socket_set_fd(self, self->addresses_to_try)) {
+    if (_set_fd(self, self->addresses_to_try)) {
         return -1;
     }
 
-    if (socket_fix_timeout(self)) {
+    if (_fix_timeout(self)) {
         return -1;
     }
 
@@ -137,7 +141,7 @@ int socket_connect(socket_t *self, const char* hostname, const char* port) {
     struct addrinfo* ptr;
 
     for (ptr = self->addresses_to_try; ptr != NULL && connected == false; ptr = ptr->ai_next) {
-        if (socket_set_fd(self, ptr)) {
+        if (_set_fd(self, ptr)) {
             return -1;
         }
 
