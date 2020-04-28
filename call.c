@@ -11,7 +11,7 @@
 // "Métodos" privados
 // ----------------------------------------------------------------------------
 
-// De inicialización
+// De inicialización:
 
 /**
  * Llena los atributos de la estructura param con nulos/0, según corresponda.
@@ -23,7 +23,7 @@ static void _initialize_param(call_t* self, param_t* param) {
     param->data = NULL;
 }
 
-// De parseo
+// De parseo:
 
 /**
  * Parsea la línea recibida que contiene el siguiente formato por enunciado:
@@ -48,7 +48,7 @@ static void _fill_param_from_line(param_t* param, char* line, int* offset,
 }
 
 
-// De parseo de los argumentos de la firma (de existir)
+// De parseo de los argumentos de la firma (de existir):
 
 /**
  * Cuenta la cantidad de parámetros que se van a separar en la línea
@@ -105,7 +105,6 @@ static void _fill_params(param_t* params, char* buffer, size_t len,
 */
 static void _parameters_parser(call_t* self, char* buffer, size_t len,
                                char delimiter) {
-
     size_t n_params = _count_params(buffer, len, delimiter);
     param_t* params = (param_t*) malloc(sizeof(param_t)*n_params);
     _fill_params(params, buffer, len, delimiter);
@@ -158,7 +157,6 @@ int call_fill(call_t* self, char* line, size_t len, uint32_t id) {
 
 
 int call_destroy(call_t* self) {
-
     if (self->dest.data) {
         free(self->dest.data);
     }
@@ -184,4 +182,4 @@ int call_destroy(call_t* self) {
     return 0;
 }
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------

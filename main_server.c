@@ -1,19 +1,31 @@
-// includes
-#include <stdio.h>
-#include "server.h"
+/** TP1 - Taller de Programación - SERVIDOR
+ * 
+ * Alumno: Parafati, Mauro.
+ * Padrón: 102749.
+ * Año y cuatrimestre: 1C 2020.
+ * Repositorio: https://github.com/mauro7x/taller_tp1
+*/
 
-// defines
+// ----------------------------------------------------------------------------
+#include "server.h"
+#include <stdio.h>
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Constantes para el manejo de errores
+
 #define USAGE_ERROR 1
 #define CREATE_ERROR 2
 #define OPEN_ERROR 3
 #define ACCEPT_ERROR 4
 #define RECEIVE_ERROR 5
+#define SHUTDOWN_ERROR 6
+#define DESTROY_ERROR 7
+// ----------------------------------------------------------------------------
 
-#define SHUTDOWN_ERROR 10
-#define DESTROY_ERROR 11
-
-// --------------------------------------------------------
-
+/**
+ * Entrada al flujo principal del SERVIDOR.
+*/
 int main(int argc, const char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage error. Usage: ./server <port>\n");
@@ -55,4 +67,4 @@ int main(int argc, const char *argv[]) {
     return 0;
 }
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------

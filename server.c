@@ -1,21 +1,25 @@
-// includes
+// ----------------------------------------------------------------------------
 #include "server.h"
-
 #include "socket.h"
 #include "dbus_server.h"
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 
-// defines
-#define MAX_CLIENTS_IN_QUEUE 1 // solo se conectara un cliente
+#define MAX_CLIENTS_IN_QUEUE 1 // solo se conectara un cliente para este TP
 #define HOSTNAME 0
 #define SOCKET_HAS_BEEN_CLOSED 1
+// ----------------------------------------------------------------------------
 
-// --------------------------------------------------------
-// static definitions
+// ----------------------------------------------------------------------------
+// "Métodos" privados
+// ----------------------------------------------------------------------------
 
+/**
+ * Recibe y procesa una call. Se encarga de instanciar al parser dbus_server,
+ * y de coordinar el procesamiento de la misma para posteriormente enviar
+ * respuesta al cliente.
+*/
 static int _receive_and_process_call(server_t* self) {
     // Verificamos si viene otra call, leyendo el primer byte
     int s;
@@ -48,8 +52,9 @@ static int _receive_and_process_call(server_t* self) {
 }
 
 
-// --------------------------------------------------------
-// Public API
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
 int server_create(server_t* self, const char* port) {
     self->port = port;
@@ -73,8 +78,8 @@ int server_create(server_t* self, const char* port) {
 
 
 int server_open(server_t* self) {
-
-    if (socket_get_addresses(&(self->acceptor), self->hostname, self->port, true)) {
+    if (socket_get_addresses(&(self->acceptor), self->hostname, self->port,
+                             true)) {
         return -1;
     }
 
@@ -87,7 +92,6 @@ int server_open(server_t* self) {
     }
 
     return 0;
-
 }
 
 
@@ -96,6 +100,7 @@ int server_accept(server_t* self) {
         fprintf(stderr, "Error acceptando conexion entrante.");
         return -1;
     }
+
     return 0;
 }
 
@@ -134,8 +139,9 @@ int server_shutdown(server_t* self) {
 int server_destroy(server_t* self) {
     socket_destroy(&(self->acceptor));
     socket_destroy(&(self->peer));
+    
     return 0;
 }
 
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------

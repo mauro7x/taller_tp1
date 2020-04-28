@@ -1,32 +1,34 @@
-/*
-Para avisarle al compilador que vamos a usar las
-extensiones POSIX, que no estan incluidas en el
-std=c99
-*/
+/**
+ * Para avisarle al compilador que vamos a usar las extensiones POSIX que no
+ * estan incluidas en el std=c99.
+ */
+
 #define _POSIX_C_SOURCE 200112L
 
-// includes
+// ----------------------------------------------------------------------------
+#include "socket.h"
 #include <stdio.h>
 #include <stdbool.h>
-
 #include <string.h>
 #include <errno.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+// ----------------------------------------------------------------------------
 
-#include "socket.h"
+// ----------------------------------------------------------------------------
+// "Métodos" privados
+// ----------------------------------------------------------------------------
 
-
-// --------------------------------------------------------
-// static definitions
-
-static int _fix_timeout(socket_t* self) {
+/**
+ * Arregla el problema de TIMEWAIT.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
+static int _fix_timewait(socket_t* self) {
     int val = 1;
     if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
-        fprintf(stderr, "Error in function: _fix_timeout.\n");
+        fprintf(stderr, "Error in function: _fix_timewait.\n");
         freeaddrinfo(self->addresses_to_try);
         close(self->fd);
         return -1;
@@ -35,12 +37,17 @@ static int _fix_timeout(socket_t* self) {
     return 0;
 }
 
-
+/**
+ * Establece el file descriptor del socket a address.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _set_fd(socket_t* self, addrinfo_t* address) {
-    self->fd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
+    self->fd = socket(address->ai_family, address->ai_socktype,
+                      address->ai_protocol);
 
     if (self->fd == -1) { 
-        fprintf(stderr, "Error in function: _set_fd. Error: %s\n", strerror(errno));
+        fprintf(stderr, "Error in function: _set_fd. Error: %s\n",
+                strerror(errno));
         freeaddrinfo(self->addresses_to_try);
         return -1;
     }
@@ -49,8 +56,9 @@ static int _set_fd(socket_t* self, addrinfo_t* address) {
 }
 
 
-// --------------------------------------------------------
-// PUBLIC API
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
 int socket_create(socket_t *self) {
     if (!self) {
@@ -61,7 +69,8 @@ int socket_create(socket_t *self) {
 }
 
 
-int socket_get_addresses(socket_t *self, const char* hostname, const char* port, bool passive) {
+int socket_get_addresses(socket_t *self, const char* hostname,
+                         const char* port, bool passive) {
     int s; // variable para el manejo de errores
     struct addrinfo hints; // filtros
 
@@ -76,7 +85,8 @@ int socket_get_addresses(socket_t *self, const char* hostname, const char* port,
     
     s = getaddrinfo(hostname, port, &hints, &(self->addresses_to_try));
     if (s != 0) { // verificamos que no hayan errores
-        fprintf(stderr, "Error in function: getaddrinfo. Error: %s\n", gai_strerror(s));
+        fprintf(stderr, "Error in function: getaddrinfo. Error: %s\n",
+                gai_strerror(s));
         freeaddrinfo(self->addresses_to_try);
         return -1;
     }
@@ -84,21 +94,20 @@ int socket_get_addresses(socket_t *self, const char* hostname, const char* port,
     return 0;
 }
 
-// --------------------------------------------------------
-// server-side functions
-
 
 int socket_bind(socket_t* self, const char* port) {
     if (_set_fd(self, self->addresses_to_try)) {
         return -1;
     }
 
-    if (_fix_timeout(self)) {
+    if (_fix_timewait(self)) {
         return -1;
     }
 
-    if (bind(self->fd, (self->addresses_to_try)->ai_addr, (self->addresses_to_try)->ai_addrlen)) {
-        fprintf(stderr, "Error in function: socket_bind. Error: %s\n", strerror(errno));
+    if (bind(self->fd, (self->addresses_to_try)->ai_addr,
+       (self->addresses_to_try)->ai_addrlen)) {
+        fprintf(stderr, "Error in function: socket_bind. Error: %s\n",
+                strerror(errno));
         freeaddrinfo(self->addresses_to_try);
         close(self->fd);
         return -1;
@@ -124,7 +133,8 @@ int socket_accept(socket_t* self, socket_t* accepted_socket) {
     accepted_socket->fd = accept(self->fd, NULL, NULL);
 
     if (accepted_socket->fd == -1) {
-        fprintf(stderr, "Error in function: socket_accept. Error: %s\n", strerror(errno));
+        fprintf(stderr, "Error in function: socket_accept. Error: %s\n",
+                strerror(errno));
         close(self->fd);
         return -1;
     }
@@ -133,20 +143,19 @@ int socket_accept(socket_t* self, socket_t* accepted_socket) {
 }
 
 
-// --------------------------------------------------------
-// client-side functions
-
 int socket_connect(socket_t *self, const char* hostname, const char* port) {
     bool connected = false;
     struct addrinfo* ptr;
 
-    for (ptr = self->addresses_to_try; ptr != NULL && connected == false; ptr = ptr->ai_next) {
+    for (ptr = self->addresses_to_try; ptr != NULL && connected == false;
+        ptr = ptr->ai_next) {
         if (_set_fd(self, ptr)) {
             return -1;
         }
 
         if (connect(self->fd, ptr->ai_addr, ptr->ai_addrlen)) {
-            fprintf(stderr, "Error in socket_connect. Error: %s\n", strerror(errno));
+            fprintf(stderr, "Error in socket_connect. Error: %s\n",
+                    strerror(errno));
             close(self->fd);
         } else {
             connected = true;
@@ -158,14 +167,13 @@ int socket_connect(socket_t *self, const char* hostname, const char* port) {
 }
 
 
-// --------------------------------------------------------
-
 int socket_send(socket_t *self, char *buffer, size_t len) {
     int total_sent = 0;
     int last_sent = 0;
 
     while (total_sent < len) {
-        last_sent = send(self->fd, &buffer[total_sent], len - total_sent, MSG_NOSIGNAL);
+        last_sent = send(self->fd, &buffer[total_sent], len - total_sent,
+                         MSG_NOSIGNAL);
 
         if (last_sent == -1) {
             fprintf(stderr, "Error in function: socket_send.\n");
@@ -186,7 +194,8 @@ int socket_recv(socket_t *self, char *buffer, size_t len) {
     int last_received = 0;
     
     while (total_received < len) {
-        last_received = recv(self->fd, &buffer[total_received], len - total_received, 0);
+        last_received = recv(self->fd, &buffer[total_received],
+                             len - total_received, 0);
 
         if (last_received == -1) {
             fprintf(stderr, "Error in function: socket_recv.\n");
@@ -216,4 +225,5 @@ int socket_destroy(socket_t *self) {
     return 0;
 }
 
-// --------------------------------------------------------
+
+// ----------------------------------------------------------------------------

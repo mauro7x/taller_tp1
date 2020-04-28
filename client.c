@@ -1,21 +1,19 @@
-// includes
+// ----------------------------------------------------------------------------
 #include "client.h"
-
 #include "dbus_client.h"
 #include "socket.h"
 #include "stdin_streamer.h"
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 
-// defines
 #define EOF_ERROR 1
+// ----------------------------------------------------------------------------
 
-
-// --------------------------------------------------------
-// Public API
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
 int client_create(client_t* self, const char* hostname, const char* port) {
     self->hostname = hostname;
@@ -46,8 +44,8 @@ int client_set_input_file(const char* path_to_file) {
 
 
 int client_connect(client_t* self) {
-
-    if (socket_get_addresses(&(self->socket), self->hostname, self->port, false)) {
+    if (socket_get_addresses(&(self->socket), self->hostname, self->port,
+                             false)) {
         return -1;
     }
 
@@ -58,16 +56,13 @@ int client_connect(client_t* self) {
     return 0;
 }
 
-/**
- * CALLBACK del STDIN_STREAMER.
- * Recibe una linea sin parsear, arma la call, y la envia.
-*/
+
 int client_send_call(void* context, char* buffer, size_t len) {
     client_t* self = (client_t*) context;
-
     dbus_client_t dbus_client;
     dbus_client_create(&dbus_client, &(self->socket));
 
+    // Procesar la call recibida
     dbus_client_fill(&dbus_client, buffer, len, (self->next_msg_id)++);
 
     /*
@@ -76,11 +71,12 @@ int client_send_call(void* context, char* buffer, size_t len) {
     }
     */
 
-    // enviar call    
+    // Enviar la call
     if (dbus_client_send_call(&dbus_client)) {
         return -1;
     }
     
+    // Imprimir respuesta del servidor
     if (dbus_client_print_server_reply(&dbus_client)) {
         return -1;
     }
@@ -93,14 +89,7 @@ int client_send_call(void* context, char* buffer, size_t len) {
 int client_send_calls(client_t* self) {
     stdin_streamer_t streamer;
     stdin_streamer_create(&streamer, &client_send_call);  
-
-    /**
-     * stdin_streamer leera una call, llama a client_create_call,
-     * quien crea la call y la llena con los datos, luego la parsea
-     * llamando a dbus_client, para finalmente enviarla.
-    */
-    stdin_streamer_run(&streamer, self);  
-
+    stdin_streamer_run(&streamer, self);
     stdin_streamer_destroy(&streamer);
     return 0;
 }
@@ -127,4 +116,4 @@ int client_destroy(client_t* self) {
 }
 
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------

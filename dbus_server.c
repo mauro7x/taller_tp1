@@ -1,29 +1,29 @@
-// includes
+// ----------------------------------------------------------------------------
 #include "dbus_server.h"
-
 #include "call.h"
 #include "socket.h"
-
 #include <stdlib.h>
 #include <string.h>
+// ----------------------------------------------------------------------------
+// Constantes propias del protoclo D-Bus
 
-
-// D-Bus data identifiers ----------------------------------------------
 #define DESTINATION_ID 6
 #define PATH_ID 1
 #define INTERFACE_ID 2
 #define METHOD_ID 3
 #define DECLARATION_ID 8
-
-
-// -----------------------------------------------------------------------
-// definitions
+// ----------------------------------------------------------------------------
 
 // --------------------------------------------------------
-// static definitions for parsing
+// "Métodos" privados
+// ----------------------------------------------------------------------------
 
-// for receiving bytes
+// De recibo de bytes desde el socket peer:
 
+/**
+ * Recibe n bytes y los descarta.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _discard_n_bytes(dbus_server_t* self, int n) {
     char thrash;
     int s;
@@ -41,14 +41,19 @@ static int _discard_n_bytes(dbus_server_t* self, int n) {
     return 0;
 }
 
-static int _receive_numeric_byte(dbus_server_t* self, size_t* dest) {
+
+/**
+ * Recibe un size_t del cliente.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
+static int _receive_sizet_value(dbus_server_t* self, size_t* dest) {
     char val;
     int s;
     s = socket_recv(self->peer, &val, 1);
     if (s == -1) {
         return -1;
     } else if (s == 0) {
-        fprintf(stderr, "Error in function: _receive_numeric_byte. "
+        fprintf(stderr, "Error in function: _receive_sizet_value. "
                         "Socket was closed before expected.\n");
         return -1;
     } 
@@ -56,6 +61,11 @@ static int _receive_numeric_byte(dbus_server_t* self, size_t* dest) {
     return 0;
 }
 
+
+/**
+ * Recibe un uint_32 del cliente.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _receive_uint32_value(dbus_server_t* self, uint32_t* dest) {
     int s;
     size_t size = sizeof((*dest));
@@ -79,10 +89,13 @@ static int _receive_uint32_value(dbus_server_t* self, uint32_t* dest) {
 }
 
 
-// for filling params
+// Del llenado de la estructura de datos:
 
-// ojo, malloc. agrega el \0
-static int _fill_param_string(dbus_server_t* self, param_t* param, uint32_t n) {
+/**
+ * Recibe el parámetro en sí del cliente y lo llena en la estructura.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
+static int _fill_param_data(dbus_server_t* self, param_t* param, uint32_t n) {
     int s;
     char* msg = (char*) malloc(sizeof(char)*(n+1));
     
@@ -90,7 +103,7 @@ static int _fill_param_string(dbus_server_t* self, param_t* param, uint32_t n) {
     if (s == -1) {
         return -1;
     } else if (s == 0) {
-        fprintf(stderr, "Error in function: _fill_param_string. "
+        fprintf(stderr, "Error in function: _fill_param_data. "
                         "Socket was closed before expected.\n");
         return -1;
     }
@@ -100,6 +113,10 @@ static int _fill_param_string(dbus_server_t* self, param_t* param, uint32_t n) {
 }
 
 
+/**
+ * Recibe la firma del cliente (si existe) y la llena en la estructura.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _fill_declaration(dbus_server_t* self, call_t* call) {
     // Descartamos los 3 bytes que siguen, no nos sirven
     if (_discard_n_bytes(self, 3)) {
@@ -107,7 +124,7 @@ static int _fill_declaration(dbus_server_t* self, call_t* call) {
     }
 
     // recibir n_params
-    if (_receive_numeric_byte(self, &(call->n_params))) {
+    if (_receive_sizet_value(self, &(call->n_params))) {
         return -1;
     }
 
@@ -125,6 +142,10 @@ static int _fill_declaration(dbus_server_t* self, call_t* call) {
 }
 
 
+/**
+ * Recibe un parámetro del cliente.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _fill_param(dbus_server_t* self, param_t* param) {
     // Descartamos los 3 bytes que siguen, no nos sirven
     if (_discard_n_bytes(self, 3)) {
@@ -135,7 +156,7 @@ static int _fill_param(dbus_server_t* self, param_t* param) {
         return -1;
     }
 
-    if (_fill_param_string(self, param, param->len)) {
+    if (_fill_param_data(self, param, param->len)) {
         return -1;
     }
 
@@ -151,6 +172,10 @@ static int _fill_param(dbus_server_t* self, param_t* param) {
 }
 
 
+/**
+ * Identifica el tipo de parámetro a recibir según su ID.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _fill_specific_param(dbus_server_t* self, call_t* call, char type) {
     switch (type) {
             case DESTINATION_ID:
@@ -188,14 +213,19 @@ static int _fill_specific_param(dbus_server_t* self, call_t* call, char type) {
 }
 
 
-static int _fill_call_params(dbus_server_t* self, call_t* call, int has_declaration) {
+/**
+ * Coordina el recibimiento de los parámetros.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
+static int _fill_call_params(dbus_server_t* self, call_t* call,
+                             int has_declaration) {
     /**
      * Los parametros no necesariamente llegan en orden, pero los identificamos
-     * por el byte de tipo que nos dice que es. Lo que si sabemos es que, como
-     * las lineas estan bien formadas, nos llegaran 4 parametros, y opcionalmente
-     * una firma del metodo.
+     * por el byte de tipo que nos dice que es. Lo que si sabemos es que como
+     * las lineas estan bien formadas nos llegaran 4 parametros, y
+     * opcionalmente, una firma del metodo.
      * 
-     * Tambien sabemos que se trata de strings, ya que en el enunciado asi lo detalla.
+     * Sabemos que se trata de strings, ya que en el enunciado así lo detalla.
     */
     int s;
 
@@ -226,19 +256,23 @@ static int _fill_call_params(dbus_server_t* self, call_t* call, int has_declarat
 }
 
 
-static int _fill_call_declaration(dbus_server_t* self, call_t* call, int has_declaration) {
+/**
+ * Coordina el recibimiento de la firma (si existiese).
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
+static int _fill_call_declaration(dbus_server_t* self, call_t* call,
+                                  int has_declaration) {
     if (!has_declaration) {
         return 0;
     }
 
     call->params = (param_t*) malloc(sizeof(param_t)*(call->n_params));
     for (int i = 0; i < call->n_params; i++) {
-
         if (_receive_uint32_value(self, &(call->params[i].len))) {
             return -1;
         }
 
-        if (_fill_param_string(self, &(call->params[i]), call->params[i].len)) {
+        if (_fill_param_data(self, &(call->params[i]), call->params[i].len)) {
             return -1;
         }
     }
@@ -247,8 +281,9 @@ static int _fill_call_declaration(dbus_server_t* self, call_t* call, int has_dec
 }
 
 
-// --------------------------------------------------------
-// Public API
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
 int dbus_server_create(dbus_server_t* self, socket_t* peer) {
     self->peer = peer;
@@ -336,4 +371,4 @@ int dbus_server_destroy(dbus_server_t* self) {
 }
 
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------

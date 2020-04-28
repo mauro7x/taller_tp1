@@ -1,13 +1,13 @@
 #ifndef __STDIN_STREAMER_H__
 #define __STDIN_STREAMER_H__
 
-// --------------------------------------------------------
-// includes
+// ----------------------------------------------------------------------------
 #include <stdio.h>
+// ----------------------------------------------------------------------------
 
-
-// --------------------------------------------------------
-// structs
+// ----------------------------------------------------------------------------
+// Definición de estructuras
+// ----------------------------------------------------------------------------
 
 typedef int (*callback_t)(void* context, char* buffer, size_t len);
 
@@ -15,14 +15,33 @@ typedef struct stdin_streamer {
 	callback_t callback;
 } stdin_streamer_t;
 
-// --------------------------------------------------------
-// declarations
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
+/** CONSTRUCTOR
+ * Inicializa el streamer, estableciendo los atributos necesarios.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 int stdin_streamer_create(stdin_streamer_t *self, callback_t callback);
 
+
+/**
+ * Coordina la iteración sobre la entrada, obteniendo mediante un buffer
+ * estático, las lineas de texto plano que definen las calls, separadas
+ * mediante el caracter '\n', para posteriormente invocar la función callback
+ * con esta línea, disparando su creación y procesamiento.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 int stdin_streamer_run(stdin_streamer_t *self, void *context);
 
+
+/** DESTRUCTOR
+ * Libera los recursos utilizados.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 int stdin_streamer_destroy(stdin_streamer_t *self);
 
-// --------------------------------------------------------
+
+// ----------------------------------------------------------------------------
 #endif // __STDIN_STREAMER_H__

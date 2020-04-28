@@ -1,16 +1,15 @@
-// includes
+// ----------------------------------------------------------------------------
 #include "stdin_streamer.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// defines
 #define CALL_DELIMITER '\n'
+// ----------------------------------------------------------------------------
 
-
-// --------------------------------------------------------
-// definiciones
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
 int stdin_streamer_create(stdin_streamer_t *self, callback_t callback) {
     self->callback = callback;
@@ -25,7 +24,7 @@ int stdin_streamer_run(stdin_streamer_t *self, void *context) {
     size_t partial_call_len = 0;
     size_t copy_from = 0;
 
-    while(!feof(stdin)) {
+    while (!feof(stdin)) {
         size_t read_bytes = fread(buffer, sizeof(char), sizeof(buffer), stdin);
         partial_call_len = 0;
         copy_from = 0;
@@ -34,11 +33,14 @@ int stdin_streamer_run(stdin_streamer_t *self, void *context) {
             if (buffer[i] != CALL_DELIMITER) {
                 partial_call_len++;
             } else {
-                call = (char*) realloc(call, sizeof(char)*(total_call_len+partial_call_len));
-                strncpy(call+total_call_len, buffer+copy_from, partial_call_len);
+                call = (char*) realloc(call, sizeof(char)*
+                                       (total_call_len+partial_call_len));
+                strncpy(call+total_call_len,
+                        buffer+copy_from, partial_call_len);
                 total_call_len += partial_call_len;
 
-                self->callback(context, call, total_call_len); // enviamos la call
+                // enviamos la call para ser procesada
+                self->callback(context, call, total_call_len);
 
                 free(call);
                 call = NULL;
@@ -49,7 +51,8 @@ int stdin_streamer_run(stdin_streamer_t *self, void *context) {
         }
 
         if (!feof(stdin)) {
-            call = (char*) realloc(call, sizeof(char)*(total_call_len + partial_call_len));
+            call = (char*) realloc(call, sizeof(char)*(total_call_len +
+                                   partial_call_len));
             strncpy(call+total_call_len, buffer+copy_from, partial_call_len);
             total_call_len += partial_call_len;
         } else {
@@ -62,8 +65,10 @@ int stdin_streamer_run(stdin_streamer_t *self, void *context) {
     return 0;
 }
 
+
 int stdin_streamer_destroy(stdin_streamer_t *self) {
     return 0;
 }
 
-// --------------------------------------------------------
+
+// ----------------------------------------------------------------------------

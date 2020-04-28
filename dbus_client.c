@@ -1,22 +1,19 @@
-// includes
+// ----------------------------------------------------------------------------
 #include "dbus_client.h"
-
 #include "call.h"
 #include "socket.h"
-
 #include <stdlib.h>
 #include <string.h>
+// ----------------------------------------------------------------------------
+// Constantes propias del protoclo D-Bus
 
-
-// D-Bus Protocol Constants ----------------------------------------------
-
-// header constants
+// Constantes para el armado del header
 #define ENDIANNESS 'l'
 #define BYTE_FOR_METHOD_CALLS 0x01
 #define HEADER_FLAGS 0x00
 #define PROTOCOL_VERSION 0x01
 
-// byte-counting constants
+// Constantes para el conteo de bytes
 #define HEADER_DESC_BYTES 16
 #define PARAM_DESC_BYTES 8   // bytes que se usan para la descripcion
                                     // de cada parametro
@@ -24,7 +21,7 @@
 #define BODY_ARG_LENGTH_BYTES 4
 #define END_BYTE 1
 
-// protocol data types and identifiers
+// Identificadores y tipos de datos del protocolo
 #define DESTINATION_ID 6
 #define DESTINATION_DATA_TYPE 's'
 #define PATH_ID 1
@@ -35,18 +32,21 @@
 #define METHOD_DATA_TYPE 's'
 #define DECLARATION_ID 8
 #define DECLARATION_DATA_TYPE 'g'
+// ----------------------------------------------------------------------------
 
+// ----------------------------------------------------------------------------
+// "Métodos" privados
+// ----------------------------------------------------------------------------
 
-// --------------------------------------------------------
-// static definitions for parsing
+// De seteo de tipos de datos:
 
-// setting the data types of the params
-
+/**
+ * Se encarga de settear las constantes propias del protocolo.
+*/
 static void _set_dtypes(dbus_client_t* self) {
     call_t* call = &(self->call);
     
     call->endianness = ENDIANNESS;
-
     call->dest.id = DESTINATION_ID;
     call->dest.data_type = DESTINATION_DATA_TYPE;
     call->path.id = PATH_ID;
@@ -58,8 +58,12 @@ static void _set_dtypes(dbus_client_t* self) {
 }
 
 
-// setting array, body, and total len of the msg
+// De cálculo de longitudes:
 
+/**
+ * Calcula el largo en bytes de la firma (de existir).
+ * Devuelve el largo (uint32_t).
+*/
 static uint32_t _set_declaration_len(size_t n_params, uint32_t* last_padding) {
     uint32_t len = 0;
     if (n_params) {
@@ -74,6 +78,11 @@ static uint32_t _set_declaration_len(size_t n_params, uint32_t* last_padding) {
 }
 
 
+/**
+ * Calcula el largo en bytes de un parámetro en particular, como podría
+ * ser por ejemplo <dest>.
+ * Devuelve el largo (uint32_t).
+*/
 static uint32_t _set_param_len(param_t* param, uint32_t* last_padding) {
     uint32_t len = param->len + PARAM_DESC_BYTES + END_BYTE;
     if (len % 8) {
@@ -85,6 +94,9 @@ static uint32_t _set_param_len(param_t* param, uint32_t* last_padding) {
 }
 
 
+/**
+ * Calcula y establece el largo del array del header en bytes.
+*/
 static void _set_array_len(dbus_client_t* self) {
     call_t* call = &(self->call);
     uint32_t array_len = 0;
@@ -101,6 +113,9 @@ static void _set_array_len(dbus_client_t* self) {
 }
 
 
+/**
+ * Calcula y establece el largo del body en bytes.
+*/
 static void _set_body_len(dbus_client_t* self) {
     uint32_t body_len = 0;
     call_t* call = &(self->call);
@@ -114,6 +129,9 @@ static void _set_body_len(dbus_client_t* self) {
 }
 
 
+/**
+ * Calcula y establece la longitud total del mensaje parseado.
+*/
 static void _set_total_length(dbus_client_t* self) {
     _set_body_len(self);
     _set_array_len(self);
@@ -128,20 +146,29 @@ static void _set_total_length(dbus_client_t* self) {
 }
 
 
-// creating the parsed call msg
+// Del procesamiento del mensaje (parseo):
 
+/**
+ * Copia desde un string src al mensaje.
+*/
 static void _copy_to_msg(char* dest, int* offset, void* src, size_t len) {
     memcpy(dest + *offset, src, len);
     (*offset) += len;
 }
 
 
+/**
+ * Copia un caracter al mensaje.
+*/
 static void _copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
     memset(dest + *offset, c, len);
     (*offset) += len;
 }
 
 
+/**
+ * Copia un parámetro en particular al mensaje.
+*/
 static void _copy_param_to_msg(param_t param, char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),len_param(uint32),param(len_param bytes),
@@ -163,7 +190,11 @@ static void _copy_param_to_msg(param_t param, char* msg, int* offset) {
 }
 
 
-static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg, int* offset) {
+/**
+ * Copia la descripción del header al mensaje.
+*/
+static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg,
+                                     int* offset) {
     // FORMATO:
     // endianness,function,flags,protocol_version,body_length(uint32),
     // id(uint32),array_length(uint32);
@@ -181,7 +212,11 @@ static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg, int* offset
 }
 
 
-static void _copy_declaration_to_msg(dbus_client_t* self, param_t* param, char* msg, int* offset) {
+/**
+ * Copia la firma al mensaje, de existir.
+*/
+static void _copy_declaration_to_msg(dbus_client_t* self, param_t* param,
+                                     char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),n_params,'s', ... (n_params times),
     // \0,[padding%8]
@@ -203,10 +238,12 @@ static void _copy_declaration_to_msg(dbus_client_t* self, param_t* param, char* 
         size_t bytes_of_padding = 8 - ((*offset) % 8);
         _copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
     }    
-
 }
 
 
+/**
+ * Copia el header al mensaje.
+*/
 static void _copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
     // copiamos los bytes iniciales
     _copy_header_desc_to_msg(self, msg, offset);
@@ -222,37 +259,53 @@ static void _copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
     if (call->n_params) {
         _copy_declaration_to_msg(self, call->params, msg, offset);
     }
+
+    return 0;
 }
 
 
+/**
+ * Copia el cuerpo al mensaje.
+*/
 static void _copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
     call_t* call = &(self->call);
 
     for (int i = 0; i < (call->n_params); i++) {
-        _copy_to_msg(msg, offset, &(call->params[i].len), sizeof(call->params[i].len));
-        _copy_to_msg(msg, offset, call->params[i].data, call->params[i].len);
-        _copy_c_to_msg(msg, offset, '\0', 1);
+        copy_to_msg(msg, offset, &(call->params[i].len),
+                     sizeof(call->params[i].len));
+        copy_to_msg(msg, offset, call->params[i].data, call->params[i].len);
+        copy_c_to_msg(msg, offset, '\0', 1);
     }
+
+    return 0;
 }
 
 
+/**
+ * Coordina la creación del mensaje procesado.
+ * Devuelve 0 si no hay errores, -1 CC.
+*/
 static int _create_msg(dbus_client_t* self) {
-    // falta manejar errores
-    
     char* msg = (char*) malloc(self->total_len);
+    if (msg == NULL) {
+        fprintf(stderr, "Error in function: _create_msg. Error: malloc.\n");
+        return -1;
+    }
+    
     memset(msg, '/', self->total_len);
 
     int i = 0;
     _copy_header_to_msg(self, msg, &i);
     _copy_body_to_msg(self, msg, &i);
-
     self->msg = msg;
+
     return 0;
 }
 
 
-// --------------------------------------------------------
-// public definitions
+// ----------------------------------------------------------------------------
+// "Métodos" públicos
+// ----------------------------------------------------------------------------
 
 int dbus_client_create(dbus_client_t* self, socket_t* socket) {
     call_create(&(self->call));
@@ -299,7 +352,6 @@ int dbus_client_send_call(dbus_client_t* self) {
 
 
 int dbus_client_print_server_reply(dbus_client_t* self) {
-
     int s;
     char reply[3] = "";
     s = socket_recv(self->socket, &(reply[0]), 3);
@@ -326,4 +378,4 @@ int dbus_client_destroy(dbus_client_t* self) {
     return 0;
 }
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------
