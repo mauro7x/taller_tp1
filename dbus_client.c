@@ -259,8 +259,6 @@ static void _copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
     if (call->n_params) {
         _copy_declaration_to_msg(self, call->params, msg, offset);
     }
-
-    return 0;
 }
 
 
@@ -271,13 +269,11 @@ static void _copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
     call_t* call = &(self->call);
 
     for (int i = 0; i < (call->n_params); i++) {
-        copy_to_msg(msg, offset, &(call->params[i].len),
+        _copy_to_msg(msg, offset, &(call->params[i].len),
                      sizeof(call->params[i].len));
-        copy_to_msg(msg, offset, call->params[i].data, call->params[i].len);
-        copy_c_to_msg(msg, offset, '\0', 1);
+        _copy_to_msg(msg, offset, call->params[i].data, call->params[i].len);
+        _copy_c_to_msg(msg, offset, '\0', 1);
     }
-
-    return 0;
 }
 
 
