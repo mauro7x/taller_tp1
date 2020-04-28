@@ -95,7 +95,7 @@ static int _fill_param_string(dbus_server_t* self, param_t* param, uint32_t n) {
         return -1;
     }
 
-    param->string = msg;
+    param->data = msg;
     return 0;
 }
 
@@ -298,15 +298,15 @@ int dbus_server_recv_call(dbus_server_t* self) {
 
 void dbus_server_print_received_call(dbus_server_t* self) {
     printf("* Id: 0x%04x\n", self->call.id);
-    printf("* Destino: %s\n", self->call.dest.string);
-    printf("* Path: %s\n", self->call.path.string);
-    printf("* Interface: %s\n", self->call.interface.string);
-    printf("* Método: %s\n", self->call.method.string);
+    printf("* Destino: %s\n", self->call.dest.data);
+    printf("* Path: %s\n", self->call.path.data);
+    printf("* Interface: %s\n", self->call.interface.data);
+    printf("* Método: %s\n", self->call.method.data);
 
     if (self->call.n_params) {
         printf("* Parámetros:\n");
         for (int i = 0; i < self->call.n_params; i++) {
-            printf("    * %s\n", self->call.params[i].string);
+            printf("    * %s\n", self->call.params[i].data);
         }
     }
     printf("\n");

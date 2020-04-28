@@ -153,7 +153,7 @@ static void _copy_param_to_msg(param_t param, char* msg, int* offset) {
     _copy_c_to_msg(msg, offset, '\0', 1);
     
     _copy_to_msg(msg, offset, &(param.len), sizeof(param.len));
-    _copy_to_msg(msg, offset, param.string, param.len);
+    _copy_to_msg(msg, offset, param.data, param.len);
     _copy_c_to_msg(msg, offset, '\0', 1);
 
     if ((param.len + 1) % 8) {
@@ -230,7 +230,7 @@ static void _copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
 
     for (int i = 0; i < (call->n_params); i++) {
         _copy_to_msg(msg, offset, &(call->params[i].len), sizeof(call->params[i].len));
-        _copy_to_msg(msg, offset, call->params[i].string, call->params[i].len);
+        _copy_to_msg(msg, offset, call->params[i].data, call->params[i].len);
         _copy_c_to_msg(msg, offset, '\0', 1);
     }
 }
