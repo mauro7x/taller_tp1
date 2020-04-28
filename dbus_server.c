@@ -18,6 +18,43 @@
 // "Métodos" privados
 // ----------------------------------------------------------------------------
 
+// De chequeo del endianness:
+
+/**
+ * Para que nuestro programa funcione de igual manera en cualquier
+ * arquitectura, debemos chequear que se envien las variables numéricas
+ * de más de un byte en little-endian, como se pide por enunciado. Para
+ * esto, utilizo una serie de funciones que se encargan de determinar el
+ * endianness de la arquitectura para posteriormente invertir (o no) los
+ * bytes de las variables en cuestión.
+*/
+
+/**
+ * Chequea el endianness de la arquitectura actual.
+ * Devuelve 0 en caso de ser little-endian, y 1 CC.
+*/
+static int _i_am_big_endian() {
+    /**
+     * Esta función compara el primer byte de un entero definido como 1,
+     * para ver si este primer byte es 1 o no. Si es 0, estamos en little
+     * endian. Si es 1, big endian.
+     * 
+     * Idea sacada de StackOverflow.
+    */
+    int n = 1;
+    if (*(char *)&n == 1) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+/**
+ * Para invertir los bytes en caso de estar en una arquitectura big-endian,
+ * vamos a utilizar la función built-in de GCC, __builtin_bswap32.
+*/
+
+
 // De recibo de bytes desde el socket peer:
 
 /**
