@@ -30,10 +30,11 @@
 */
 
 /**
- * Chequea el endianness de la arquitectura actual.
- * Devuelve 0 en caso de ser little-endian, y 1 CC.
+ * @desc:   chequea el endianness de la arquitectura actual.
+ * @param:  -
+ * @return: 0 en caso de ser little endian, 1 en caso de ser big endian.
 */
-// static int _i_am_big_endian() {
+static int _i_am_big_endian() {
     /**
      * Esta función compara el primer byte de un entero definido como 1,
      * para ver si este primer byte es 1 o no. Si es 0, estamos en little
@@ -41,16 +42,15 @@
      * 
      * Idea sacada de StackOverflow.
     */
-   /*
+   
     int n = 1;
     if (*(char *)&n == 1) {
         return 0;
     } else {
         return 1;
     }
-    
 }
-*/
+
 /**
  * Para invertir los bytes en caso de estar en una arquitectura big-endian,
  * vamos a utilizar la función built-in de GCC, __builtin_bswap32.
@@ -83,7 +83,7 @@ static int _discard_n_bytes(dbus_server_t* self, int n) {
 
 
 /**
- * @desc:   recibe un size_t del cliente.
+ * @desc:   recibe un byte del cliente y lo guarda en un size_t.
  * @param:  puntero al size_t destino.
  * @return: 0 si no hay errores, -1 CC.
 */
@@ -126,6 +126,30 @@ static int _receive_uint32_value(dbus_server_t* self, uint32_t* dest) {
 
     memcpy(dest, aux, size);
     free(aux);
+
+    return 0;
+}
+
+
+/**
+ * @desc:   recibe un entero de 4 bytes chequeando el endianness, para que
+ *          el mensaje enviado siempre sea little endian.
+ * @param:  puntero al uint32_t destino.
+ * @return: 0 si no hay errores, -1 CC.
+*/
+static int _receive_uint32_checking_endianness(dbus_server_t* self,
+                                                uint32_t* dest) {
+    uint32_t int_to_receive;
+
+    if (_receive_uint32_value(self, &int_to_receive)) {
+        return -1;
+    }
+
+    if (_i_am_big_endian()) {
+        int_to_receive = __builtin_bswap32(int_to_receive);
+    }
+
+    (*dest) = int_to_receive;
 
     return 0;
 }
@@ -198,7 +222,7 @@ static int _fill_param(dbus_server_t* self, param_t* param) {
         return -1;
     }
 
-    if (_receive_uint32_value(self, &(param->len))) {
+    if (_receive_uint32_checking_endianness(self, &(param->len))) {
         return -1;
     }
 
@@ -318,7 +342,7 @@ static int _fill_call_declaration(dbus_server_t* self, call_t* call,
 
     call->params = (param_t*) malloc(sizeof(param_t)*(call->n_params));
     for (int i = 0; i < call->n_params; i++) {
-        if (_receive_uint32_value(self, &(call->params[i].len))) {
+        if (_receive_uint32_checking_endianness(self, &(call->params[i].len))) {
             return -1;
         }
 
@@ -353,11 +377,11 @@ int dbus_server_recv_call(dbus_server_t* self) {
     uint32_t body_len;
     uint32_t id_call;
 
-    if (_receive_uint32_value(self, &body_len)) {
+    if (_receive_uint32_checking_endianness(self, &body_len)) {
         return -1;
     }
 
-    if (_receive_uint32_value(self, &id_call)) {
+    if (_receive_uint32_checking_endianness(self, &id_call)) {
         return -1;
     }
 

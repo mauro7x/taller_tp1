@@ -50,10 +50,11 @@
 */
 
 /**
- * Chequea el endianness de la arquitectura actual.
- * Devuelve 0 en caso de ser little-endian, y 1 CC.
+ * @desc:   chequea el endianness de la arquitectura actual.
+ * @param:  -
+ * @return: 0 en caso de ser little endian, 1 en caso de ser big endian.
 */
-// static int _i_am_big_endian() {
+static int _i_am_big_endian() {
     /**
      * Esta función compara el primer byte de un entero definido como 1,
      * para ver si este primer byte es 1 o no. Si es 0, estamos en little
@@ -61,16 +62,14 @@
      * 
      * Idea sacada de StackOverflow.
     */
-   /*
+   
     int n = 1;
     if (*(char *)&n == 1) {
         return 0;
     } else {
         return 1;
     }
-    
 }
-*/
 
 /**
  * Para invertir los bytes en caso de estar en una arquitectura big-endian,
@@ -202,9 +201,9 @@ static void _set_total_length(dbus_client_t* self) {
 
 /**
  * @desc:   copia desde un string src al mensaje procesado.
- * @param:  un string a donde copiar, un string de donde copiar, un offset
- *          que indica desde donde copiar, y una longitud que indica cuanto
- *          copiar.
+ * @param:  un string a donde copiar, un puntero que apunta desde donde copiar,
+ *          un offset que indica desde donde copiar, y una longitud que indica
+ *          cuanto copiar.
  * @return: -
 */
 static void _copy_to_msg(char* dest, int* offset, void* src, size_t len) {
@@ -226,6 +225,26 @@ static void _copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
 
 
 /**
+ * @desc:   copia un entero de 4 bytes chequeando el endianness, para que
+ *          el mensaje enviado siempre sea little endian.
+ * @param:  un string a donde copiar, un puntero al entero a copiar, un offset
+ *          que indica desde donde copiar, y una longitud que indica cuanto
+ *          copiar.
+ * @return: -
+*/
+static void _copy_uint32_checking_endianness(char* dest, int* offset,
+                                             uint32_t* src, size_t len) {
+    uint32_t int_to_copy = *src;
+
+    if (_i_am_big_endian()) {
+        int_to_copy = __builtin_bswap32(int_to_copy);
+    }
+
+    _copy_to_msg(dest, offset, &int_to_copy, len);                                       
+}
+
+
+/**
  * @desc:   copia un parametro al mensaje.
  * @param:  recibe un puntero al parametro a copiar, un string donde copiar,
  *          y un offset que indica desde donde copiar.
@@ -241,7 +260,8 @@ static void _copy_param_to_msg(param_t* param, char* msg, int* offset) {
     _copy_to_msg(msg, offset, &(param->data_type), sizeof(param->data_type));
     _copy_c_to_msg(msg, offset, '\0', 1);
     
-    _copy_to_msg(msg, offset, &(param->len), sizeof(param->len));
+    _copy_uint32_checking_endianness(msg, offset, &(param->len),
+                                     sizeof(param->len));
     _copy_to_msg(msg, offset, param->data, param->len);
     _copy_c_to_msg(msg, offset, '\0', 1);
 
@@ -301,9 +321,9 @@ static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg,
     _copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
     _copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
 
-    _copy_to_msg(msg, offset, &(self->body_len), sizeof(self->body_len));
-    _copy_to_msg(msg, offset, &(call->id), sizeof(call->id));
-    _copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
+    _copy_uint32_checking_endianness(msg, offset, &(self->body_len), sizeof(self->body_len));
+    _copy_uint32_checking_endianness(msg, offset, &(call->id), sizeof(call->id));
+    _copy_uint32_checking_endianness(msg, offset, &(self->array_len), sizeof(self->array_len));
 }
 
 
@@ -358,9 +378,7 @@ static int _create_msg(dbus_client_t* self) {
         fprintf(stderr, "Error in function: _create_msg. Error: malloc.\n");
         return -1;
     }
-    
-    memset(msg, '/', self->total_len);
-
+ 
     int i = 0;
     _copy_header_to_msg(self, msg, &i);
     _copy_body_to_msg(self, msg, &i);
