@@ -14,9 +14,5 @@
 
 1. [Presentación del trabajo](#presentacion)
     * [Descripción del problema](#descripcion)
-    * [Especificaciones requeridas por la cátedra](#especificaciones)
-    * [Restricciones](#reestricciones)
 
 <!-- ##################################################################### -->
-
-

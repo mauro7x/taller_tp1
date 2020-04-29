@@ -14,7 +14,7 @@
 #define DECLARATION_ID 8
 // ----------------------------------------------------------------------------
 
-// --------------------------------------------------------
+// ----------------------------------------------------------------------------
 // "Métodos" privados
 // ----------------------------------------------------------------------------
 
@@ -85,7 +85,7 @@ static int _discard_n_bytes(dbus_server_t* self, int n) {
 /**
  * @desc:   recibe un byte del cliente y lo guarda en un size_t.
  * @param:  puntero al size_t destino.
- * @return: 0 si no hay errores, -1 CC.
+ * @return: 0 si no hay err_receive_uint32_valueores, -1 CC.
 */
 static int _receive_sizet_value(dbus_server_t* self, size_t* dest) {
     char val;
