@@ -9,6 +9,9 @@
 #define MAX_CLIENTS_IN_QUEUE 1 // solo se conectara un cliente para este TP
 #define HOSTNAME 0
 #define SOCKET_HAS_BEEN_CLOSED 1
+#define SHUT_RD 0
+#define SHUT_WR 1
+#define SHUT_RDWR 2
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -122,12 +125,12 @@ int server_receive_calls(server_t* self) {
 
 
 int server_shutdown(server_t* self) {
-    if (socket_shutdown(&(self->acceptor))) {
+    if (socket_shutdown(&(self->acceptor), SHUT_RDWR)) {
         fprintf(stderr, "Error in function: socket_shutdown (S)\n");
         return -1;
     }
 
-    if (socket_shutdown(&(self->peer))) {
+    if (socket_shutdown(&(self->peer), SHUT_RDWR)) {
         fprintf(stderr, "Error in function: socket_shutdown (P)\n");
         return -1;
     }

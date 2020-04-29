@@ -30,7 +30,6 @@ static int _fix_timewait(socket_t* self) {
     if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val))) {
         fprintf(stderr, "Error in function: _fix_timewait.\n");
         freeaddrinfo(self->addresses_to_try);
-        close(self->fd);
         return -1;
     }
 
@@ -109,7 +108,6 @@ int socket_bind(socket_t* self, const char* port) {
         fprintf(stderr, "Error in function: socket_bind. Error: %s\n",
                 strerror(errno));
         freeaddrinfo(self->addresses_to_try);
-        close(self->fd);
         return -1;
     }
 
@@ -121,7 +119,6 @@ int socket_bind(socket_t* self, const char* port) {
 int socket_listen(socket_t* self, const int max_clients_in_queue) {
     if (listen(self->fd, max_clients_in_queue)) {
         fprintf(stderr, "Error in function: socket_listen.\n");
-        close(self->fd);
         return -1;
     }
 
@@ -135,7 +132,6 @@ int socket_accept(socket_t* self, socket_t* accepted_socket) {
     if (accepted_socket->fd == -1) {
         fprintf(stderr, "Error in function: socket_accept. Error: %s\n",
                 strerror(errno));
-        close(self->fd);
         return -1;
     }
     
@@ -211,17 +207,19 @@ int socket_recv(socket_t *self, char *buffer, size_t len) {
 }
 
 
-int socket_shutdown(socket_t *self) {
-    if (shutdown(self->fd, SHUT_RDWR)) {
+int socket_shutdown(socket_t *self, int channel) {
+    if (shutdown(self->fd, channel)) {
         return -1;
     }
 
-    close(self->fd);
     return 0;
 }
 
 
 int socket_destroy(socket_t *self) {
+    if (close(self->fd)) {
+        return -1;
+    }
     return 0;
 }
 

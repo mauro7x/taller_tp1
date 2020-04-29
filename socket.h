@@ -85,7 +85,7 @@ int socket_recv(socket_t *self, char *buffer, size_t len);
  * Apaga el socket, cerrando ambos de sus canales.
  * Devuelve 0 si no hay errores, -1 CC.
 */
-int socket_shutdown(socket_t *self);
+int socket_shutdown(socket_t *self, int channel);
 
 
 /** DESTRUCTOR

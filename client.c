@@ -9,6 +9,9 @@
 #include <stdint.h>
 
 #define EOF_ERROR 1
+#define SHUT_RD 0
+#define SHUT_WR 1
+#define SHUT_RDWR 2
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -96,7 +99,7 @@ int client_send_calls(client_t* self) {
 
 
 int client_shutdown(client_t* self) {
-    if (socket_shutdown(&(self->socket))) {
+    if (socket_shutdown(&(self->socket), SHUT_RDWR)) {
         fprintf(stderr, "Error apagando el socket.\n");
         return -1;
     }

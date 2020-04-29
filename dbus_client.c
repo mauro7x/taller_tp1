@@ -53,7 +53,7 @@
  * Chequea el endianness de la arquitectura actual.
  * Devuelve 0 en caso de ser little-endian, y 1 CC.
 */
-static int _i_am_big_endian() {
+// static int _i_am_big_endian() {
     /**
      * Esta función compara el primer byte de un entero definido como 1,
      * para ver si este primer byte es 1 o no. Si es 0, estamos en little
@@ -61,13 +61,16 @@ static int _i_am_big_endian() {
      * 
      * Idea sacada de StackOverflow.
     */
+   /*
     int n = 1;
     if (*(char *)&n == 1) {
         return 0;
     } else {
         return 1;
     }
+    
 }
+*/
 
 /**
  * Para invertir los bytes en caso de estar en una arquitectura big-endian,

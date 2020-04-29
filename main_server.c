@@ -63,7 +63,6 @@ int main(int argc, const char *argv[]) {
         return DESTROY_ERROR;
     }
 
-    printf("\nCHAMPIONS\n");
     return 0;
 }
 

@@ -65,9 +65,7 @@ int main(int argc, const char *argv[]) {
     if (client_destroy(&client)) {
         return DESTROY_ERROR;
     }
-    
 
-    printf("\nCHAMPIONS\n");
     return 0;
 }
 
