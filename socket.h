@@ -22,75 +22,89 @@ typedef struct socket {
 // ----------------------------------------------------------------------------
 
 /** CONSTRUCTOR
- * Inicializa los atributos correspondientes.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   inicializa los atributos correspondientes.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_create(socket_t* self);
 
 
 /**
- * Obtiene la lista de direcciones a las que se intentará conectar el socket.
- * Con el argumento passive se indica si se trata de un servidor o cliente.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   obtiene la lista de direcciones a las que se intentará conectar.
+ * @param:  hostname y puerto del que se quieren las direcciones, booleano que
+ *          indica si se trata de un socket pasivo (server) o no.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_get_addresses(socket_t* self, const char* hostname,
                          const char* port, bool passive);
 
 
-/** Método SERVER-SIDE.
- * Crea el socket con el file descriptor obtenido por getaddrinfo, arregla
- * el problema de TIMEWAIT de existir, y bindea el socket al puerto
- * que corresponda.
- * Devuelve 0 si no hay errores, -1 CC.
+/** Método SERVER-SIDE
+ * @desc:   crea el socket con el file descriptor obtenido por getaddrinfo,
+ *          arregla el problema de TIMEWAIT de existir, y bindea el socket al
+ *          puerto que corresponda.
+ * @param:  puerto al que se quiere bindear.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_bind(socket_t* self, const char* port);
 
 
-/** Método SERVER-SIDE.
- * Establece el servidor a la escucha de N clientes (encolados).
- * Devuelve 0 si no hay errores, -1 CC.
+/** Método SERVER-SIDE
+ * @desc:   establece el servidor a la escucha de clientes.
+ * @param:  número maximo de clientes encolados esperando ser aceptados.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_listen(socket_t* self, const int max_clients_in_queue);
 
 
-/** Método SERVER-SIDE.
- * Acepta un cliente.
- * Devuelve 0 si no hay errores, -1 CC.
+/** Método SERVER-SIDE
+ * @desc:   acepta una conexión entrante.
+ * @param:  puntero al socket aceptado.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_accept(socket_t* self, socket_t* accepted_socket);
 
 
-/** Método CLIENT-SIDE.
- * Intenta conectarse a través de las direcciones obtenidas.
- * Devuelve 0 si no hay errores, -1 CC.
+/** Método CLIENT-SIDE
+ * @desc:   intenta conectarse a las direcciones obtenidas en la funcion
+ *          socket_get_addresses.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
-int socket_connect(socket_t* self, const char* hostname, const char* port);
+int socket_connect(socket_t* self);
 
 
 /**
- * Envía 'len' bytes desde el buffer recibido a través del socket.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   envia 'len' bytes del buffer a través del socket.
+ * @param:  buffer del cual enviar, longitud de bytes a enviar.
+ * @return: n>0 indicando cuantos bytes se enviaron, 0 si se cerró el socket,
+ *          -1 en caso de error inesperado.
 */
 int socket_send(socket_t *self, char *buffer, size_t len);
 
 
 /**
- * Recibe 'len' bytes desde el buffer recibido a través del socket.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   recibe 'len' bytes del buffer a través del socket.
+ * @param:  buffer del cual recibir, longitud de bytes a recibir.
+ * @return: n>0 indicando cuantos bytes se recibieron, 0 si se cerró el socket,
+ *          -1 en caso de error inesperado.
 */
 int socket_recv(socket_t *self, char *buffer, size_t len);
 
 
 /**
- * Apaga el socket, cerrando ambos de sus canales.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   apaga el canal solicitado del socket.
+ * @param:  int representando el canal a apagar de acuerdo a:
+ *              0 == READ CHANNEL, 1 == WRITE CHANNEL, 2 BOTH
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_shutdown(socket_t *self, int channel);
 
 
 /** DESTRUCTOR
- * Libera los recursos utilizados.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   libera los recursos utilizados.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int socket_destroy(socket_t *self);
 

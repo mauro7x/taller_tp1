@@ -60,8 +60,9 @@
 // De recibo de bytes desde el socket peer:
 
 /**
- * Recibe n bytes y los descarta.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   recibe n bytes y los descarta.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _discard_n_bytes(dbus_server_t* self, int n) {
     char thrash;
@@ -82,8 +83,9 @@ static int _discard_n_bytes(dbus_server_t* self, int n) {
 
 
 /**
- * Recibe un size_t del cliente.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   recibe un size_t del cliente.
+ * @param:  puntero al size_t destino.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _receive_sizet_value(dbus_server_t* self, size_t* dest) {
     char val;
@@ -102,8 +104,9 @@ static int _receive_sizet_value(dbus_server_t* self, size_t* dest) {
 
 
 /**
- * Recibe un uint_32 del cliente.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   recibe un uint32_t del cliente.
+ * @param:  puntero al uint32_t destino.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _receive_uint32_value(dbus_server_t* self, uint32_t* dest) {
     int s;
@@ -131,8 +134,10 @@ static int _receive_uint32_value(dbus_server_t* self, uint32_t* dest) {
 // Del llenado de la estructura de datos:
 
 /**
- * Recibe el parámetro en sí del cliente y lo llena en la estructura.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   llena el string de un parametro en la estructura.
+ * @param:  recibe un puntero al parametro a recibir, y su longitud, incluyendo
+ *          el byte final \0.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fill_param_data(dbus_server_t* self, param_t* param, uint32_t n) {
     int s;
@@ -153,8 +158,9 @@ static int _fill_param_data(dbus_server_t* self, param_t* param, uint32_t n) {
 
 
 /**
- * Recibe la firma del cliente (si existe) y la llena en la estructura.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   llena la firma en la estructura.
+ * @param:  recibe un puntero a la call a llenar.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fill_declaration(dbus_server_t* self, call_t* call) {
     // Descartamos los 3 bytes que siguen, no nos sirven
@@ -182,8 +188,9 @@ static int _fill_declaration(dbus_server_t* self, call_t* call) {
 
 
 /**
- * Recibe un parámetro del cliente.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   coordina como se llena un parametro de la estructura.
+ * @param:  recibe un puntero al parametro a llenar.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fill_param(dbus_server_t* self, param_t* param) {
     // Descartamos los 3 bytes que siguen, no nos sirven
@@ -212,8 +219,10 @@ static int _fill_param(dbus_server_t* self, param_t* param) {
 
 
 /**
- * Identifica el tipo de parámetro a recibir según su ID.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   identifica el tipo de parámetro a recibir según su ID.
+ * @param:  un caracter que identifica a cada parametro, un puntero a la
+ *          call a llenar.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fill_specific_param(dbus_server_t* self, call_t* call, char type) {
     switch (type) {
@@ -253,8 +262,9 @@ static int _fill_specific_param(dbus_server_t* self, call_t* call, char type) {
 
 
 /**
- * Coordina el recibimiento de los parámetros.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   coordina el recibimiento de los 4 o 5 parametros de la call.
+ * @param:  puntero apuntando la call a llenar.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fill_call_params(dbus_server_t* self, call_t* call,
                              int has_declaration) {
@@ -296,8 +306,9 @@ static int _fill_call_params(dbus_server_t* self, call_t* call,
 
 
 /**
- * Coordina el recibimiento de la firma (si existiese).
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   coordina el recibimiento de la firma.
+ * @param:  un puntero a la call a llenar, un int que indica si tiene firma.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fill_call_declaration(dbus_server_t* self, call_t* call,
                                   int has_declaration) {

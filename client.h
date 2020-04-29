@@ -22,56 +22,62 @@ typedef struct client {
 // ----------------------------------------------------------------------------
 
 /** CONSTRUCTOR
- * Se encarga de inicializar el cliente llenando sus atributos.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   se encarga de inicializar el cliente llenando sus atributos.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_create(client_t* self, const char* hostname, const char* port);
 
 
 /**
- * Se la llama cuando se proporciona un archivo de entrada, se encarga
- * de abrirlo y setearlo como stdin para el resto de la ejecución.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   se encarga de abrir el archivo recibido y de setearlo como stdin
+ *          para el resto de la ejecución.
+ * @param:  ruta al archivo.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_set_input_file(const char* path_to_file);
 
 
 /**
- * Intenta conectarse al servidor, primero obteniendo las direcciones
- * posibles y luego probando con cada una de ellas.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   intenta conectarse al servidor, primero obteniendo las direcciones
+ *          posibles y luego probando con cada una de ellas.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_connect(client_t* self);
 
 
 /**
- * Se encarga de coordinar el procesamiento de las calls recibidas
- * por la entrada, para luego enviarlas al servidor y recibir la
- * respuesta del mismo por cada call enviada.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   se encarga de coordinar el procesamiento de las calls recibidas
+ *          por la entrada, para luego enviarlas al servidor y recibir la
+ *          respuesta del mismo por cada call enviada.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_send_calls(client_t* self);
 
 
-/** CALLBACK del STDIN_STREAMER.
- * Se encarga del envio de una call en particular, recibiendo por
- * argumentos una linea con texto plano de la misma.
- * Devuelve 0 si no hay errores, -1 CC.
+/** CALLBACK del STDIN_STREAMER
+ * @desc:   se encarga del envio de una call en particular.
+ * @param:  linea de texto plano con la call a procesar y enviar, longitud
+ *          de la misma
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_send_call(void* context, char* buffer, size_t len);
 
 
 /**
- * Apaga el cliente, cerrando los canales del socket y luego cerrando
- * al mismo socket.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   apaga el cliente, cerrando los canales del socket.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_shutdown(client_t* self);
 
 
 /** DESTRUCTOR
- * Libera los recursos utilizados.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   libera los recursos utilizados.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int client_destroy(client_t* self);
 

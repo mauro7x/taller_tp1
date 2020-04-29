@@ -21,36 +21,42 @@ typedef struct dbus_server {
 // ----------------------------------------------------------------------------
 
 /** CONSTRUCTOR
- * Inicializa los atributos según corresponda.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   inicializa los atributos según corresponda.
+ * @param:  socket peer de donde se reciben los datos de la call.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_server_create(dbus_server_t* self, socket_t* peer);
 
 
 /**
- * Recibe una call del socket peer y la procesa.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   recibe una call del socket peer y la procesa.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_server_recv_call(dbus_server_t* self);
 
 
 /**
- * Imprime por STDOUT la call recibida y procesada segun lo especificado por
- * el enunciado.
+ * @desc:   imprime por stdout la call recibida y procesada respetando el
+ *          formato solicitado.
+ * @param:  -
+ * @return: -
 */
 void dbus_server_print_received_call(dbus_server_t* self);
 
 
 /**
- * Envía la confirmación al cliente de que se recibió la call.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   envia confirmacion al cliente de que se recibió la call.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_server_send_confirmation(dbus_server_t* self);
 
 
 /** DESTRUCTOR
- * Libera los recursos utilizados.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   libera los recursos utilizados.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_server_destroy(dbus_server_t* self);
 

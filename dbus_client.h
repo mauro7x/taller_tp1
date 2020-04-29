@@ -26,36 +26,42 @@ typedef struct dbus_client {
 // ----------------------------------------------------------------------------
 
 /** CONSTRUCTOR
- * Inicializa la estructura de datos según corresponde.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   inicializa la estructura de datos según corresponde.
+ * @param:  socket a través del cual enviar bytes al servidor.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_client_create(dbus_client_t* self, socket_t* socket);
 
 
 /**
- * Se encarga de llenar la estructura de datos desde una línea recibida.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   se encarga de llenar la estructura de datos.
+ * @param:  linea de texto plano que contiene a la call a serializar,
+ *          longitud de la misma, id de la call.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_client_fill(dbus_client_t* self, char* buffer, size_t len, int id);
 
 
 /**
- * Envía la call procesada al servidor.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   envia la call procesada al servidor.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_client_send_call(dbus_client_t* self);
 
 
 /**
- * Imprime por STDOUT la respuesta del servidor en el formato pedido.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   imprime por stdout la respuesta del servidor tras enviar la call.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_client_print_server_reply(dbus_client_t* self);
 
 
 /** DESTRUCTOR
- * Libera los recursos utilizados.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   libera los recursos utilizados.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int dbus_client_destroy(dbus_client_t* self);
 

@@ -34,23 +34,26 @@ typedef struct call {
 // ----------------------------------------------------------------------------
 
 /** CONSTRUCTOR
- * Inicializa los parámetros del TDA call en 0/NULL, según corresponda.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   inicializa los parámetros del TDA call según corresponda.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int call_create(call_t* self);
 
 
 /** MÉTODO CLIENT-SIDE
- * Recibe un buffer que contiene una call en texto plano, y se encarga
- * de parsearla para llenar la estructura de los datos.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   se encarga de llenar la estructura de los datos.
+ * @param:  linea de texto plato que contiene los datos a parsear, longitud
+ *          de la misma, id que corresponde a la call.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int call_fill(call_t* self, char* line, size_t len, uint32_t id);
 
 
 /** DESTRUCTOR
- * Libera la memoria dinámica reservada para la estructura de datos.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   libera la memoria dinámica reservada para la estructura de datos.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int call_destroy(call_t* self);
 

@@ -52,7 +52,7 @@ int client_connect(client_t* self) {
         return -1;
     }
 
-    if (socket_connect(&(self->socket), self->hostname, self->port)) {
+    if (socket_connect(&(self->socket))) {
         return -1;
     }   
 

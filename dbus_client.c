@@ -81,7 +81,9 @@
 // De seteo de tipos de datos:
 
 /**
- * Se encarga de settear las constantes propias del protocolo.
+ * @desc:   settea las constantes propias del protocolo.
+ * @param:  -
+ * @return: -
 */
 static void _set_dtypes(dbus_client_t* self) {
     call_t* call = &(self->call);
@@ -101,8 +103,10 @@ static void _set_dtypes(dbus_client_t* self) {
 // De cálculo de longitudes:
 
 /**
- * Calcula el largo en bytes de la firma (de existir).
- * Devuelve el largo (uint32_t).
+ * @desc:   calcula el largo en bytes de la firma (de existir).
+ * @param:  recibe un puntero a un entero de 32 bytes para retornar cuanto
+ *          padding se agregó en la firma.
+ * @return: uint32_t con el largo en bytes de la firma.
 */
 static uint32_t _set_declaration_len(size_t n_params, uint32_t* last_padding) {
     uint32_t len = 0;
@@ -119,9 +123,11 @@ static uint32_t _set_declaration_len(size_t n_params, uint32_t* last_padding) {
 
 
 /**
- * Calcula el largo en bytes de un parámetro en particular, como podría
- * ser por ejemplo <dest>.
- * Devuelve el largo (uint32_t).
+ * @desc:   calcula el largo en bytes de un parámetro en particular, como
+ *          podría ser por ejemplo <dest>.
+ * @param:  recibe un puntero a un entero de 32 bytes para retornar cuanto
+ *          padding se agregó en la firma.
+ * @return: uint32_t con el largo en bytes de un parametro.
 */
 static uint32_t _set_param_len(param_t* param, uint32_t* last_padding) {
     uint32_t len = param->len + PARAM_DESC_BYTES + END_BYTE;
@@ -135,7 +141,9 @@ static uint32_t _set_param_len(param_t* param, uint32_t* last_padding) {
 
 
 /**
- * Calcula y establece el largo del array del header en bytes.
+ * @desc:   calcula y establece el largo del array del header en bytes.
+ * @param:  -
+ * @return: -
 */
 static void _set_array_len(dbus_client_t* self) {
     call_t* call = &(self->call);
@@ -154,7 +162,9 @@ static void _set_array_len(dbus_client_t* self) {
 
 
 /**
- * Calcula y establece el largo del body en bytes.
+ * @desc:   calcula y establece el largo del body en bytes.
+ * @param:  -
+ * @return: -
 */
 static void _set_body_len(dbus_client_t* self) {
     uint32_t body_len = 0;
@@ -170,7 +180,9 @@ static void _set_body_len(dbus_client_t* self) {
 
 
 /**
- * Calcula y establece la longitud total del mensaje parseado.
+ * @desc:   calcula y establece la longitud total del mensaje.
+ * @param:  -
+ * @return: -
 */
 static void _set_total_length(dbus_client_t* self) {
     _set_body_len(self);
@@ -189,7 +201,11 @@ static void _set_total_length(dbus_client_t* self) {
 // Del procesamiento del mensaje (parseo):
 
 /**
- * Copia desde un string src al mensaje.
+ * @desc:   copia desde un string src al mensaje procesado.
+ * @param:  un string a donde copiar, un string de donde copiar, un offset
+ *          que indica desde donde copiar, y una longitud que indica cuanto
+ *          copiar.
+ * @return: -
 */
 static void _copy_to_msg(char* dest, int* offset, void* src, size_t len) {
     memcpy(dest + *offset, src, len);
@@ -198,7 +214,10 @@ static void _copy_to_msg(char* dest, int* offset, void* src, size_t len) {
 
 
 /**
- * Copia un caracter al mensaje.
+ * @desc:   copia un caracter específico al mensaje.
+ * @param:  un string a donde copiar, un offset que indica desde donde copiar,
+ *          el caracter a copiar, y una longitud que indica cuanto copiar.
+ * @return: -
 */
 static void _copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
     memset(dest + *offset, c, len);
@@ -207,56 +226,39 @@ static void _copy_c_to_msg(char* dest, int* offset, char c, size_t len) {
 
 
 /**
- * Copia un parámetro en particular al mensaje.
+ * @desc:   copia un parametro al mensaje.
+ * @param:  recibe un puntero al parametro a copiar, un string donde copiar,
+ *          y un offset que indica desde donde copiar.
+ * @return: -
 */
-static void _copy_param_to_msg(param_t param, char* msg, int* offset) {
+static void _copy_param_to_msg(param_t* param, char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),len_param(uint32),param(len_param bytes),
     // \0,[padding%8]
 
-    _copy_to_msg(msg, offset, &(param.id), sizeof(param.id));
+    _copy_to_msg(msg, offset, &(param->id), sizeof(param->id));
     _copy_c_to_msg(msg, offset, 1, 1);
-    _copy_to_msg(msg, offset, &(param.data_type), sizeof(param.data_type));
+    _copy_to_msg(msg, offset, &(param->data_type), sizeof(param->data_type));
     _copy_c_to_msg(msg, offset, '\0', 1);
     
-    _copy_to_msg(msg, offset, &(param.len), sizeof(param.len));
-    _copy_to_msg(msg, offset, param.data, param.len);
+    _copy_to_msg(msg, offset, &(param->len), sizeof(param->len));
+    _copy_to_msg(msg, offset, param->data, param->len);
     _copy_c_to_msg(msg, offset, '\0', 1);
 
-    if ((param.len + 1) % 8) {
-        size_t bytes_of_padding = 8 - ((param.len + 1) % 8);
+    if ((param->len + 1) % 8) {
+        size_t bytes_of_padding = 8 - ((param->len + 1) % 8);
         _copy_c_to_msg(msg, offset, '\0', bytes_of_padding);
     }
 }
 
 
 /**
- * Copia la descripción del header al mensaje.
+ * @desc:   copia la firma al mensaje.
+ * @param:  string a donde copiar, offset que indica desde donde copiar.
+ * @return: -
 */
-static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg,
+static void _copy_declaration_to_msg(dbus_client_t* self, char* msg,
                                      int* offset) {
-    // FORMATO:
-    // endianness,function,flags,protocol_version,body_length(uint32),
-    // id(uint32),array_length(uint32);
-
-    call_t* call = &(self->call);
-
-    _copy_c_to_msg(msg, offset, ENDIANNESS, 1);
-    _copy_c_to_msg(msg, offset, BYTE_FOR_METHOD_CALLS, 1);
-    _copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
-    _copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
-
-    _copy_to_msg(msg, offset, &(self->body_len), sizeof(self->body_len));
-    _copy_to_msg(msg, offset, &(call->id), sizeof(call->id));
-    _copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
-}
-
-
-/**
- * Copia la firma al mensaje, de existir.
-*/
-static void _copy_declaration_to_msg(dbus_client_t* self, param_t* param,
-                                     char* msg, int* offset) {
     // FORMATO:
     // id,1,datatype,0(padding),n_params,'s', ... (n_params times),
     // \0,[padding%8]
@@ -282,7 +284,33 @@ static void _copy_declaration_to_msg(dbus_client_t* self, param_t* param,
 
 
 /**
- * Copia el header al mensaje.
+ * @desc:   copia la descripción del header al mensaje.
+ * @param:  string a donde copiar, offset que indica desde donde copiar.
+ * @return: -
+*/
+static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg,
+                                     int* offset) {
+    // FORMATO:
+    // endianness,function,flags,protocol_version,body_length(uint32),
+    // id(uint32),array_length(uint32);
+
+    call_t* call = &(self->call);
+
+    _copy_c_to_msg(msg, offset, ENDIANNESS, 1);
+    _copy_c_to_msg(msg, offset, BYTE_FOR_METHOD_CALLS, 1);
+    _copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
+    _copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
+
+    _copy_to_msg(msg, offset, &(self->body_len), sizeof(self->body_len));
+    _copy_to_msg(msg, offset, &(call->id), sizeof(call->id));
+    _copy_to_msg(msg, offset, &(self->array_len), sizeof(self->array_len));
+}
+
+
+/**
+ * @desc:   copia el header al mensaje.
+ * @param:  string a donde copiar, offset que indica desde donde copiar.
+ * @return: -
 */
 static void _copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
     // copiamos los bytes iniciales
@@ -290,20 +318,22 @@ static void _copy_header_to_msg(dbus_client_t* self, char* msg, int* offset) {
 
     // array de parametros
     call_t* call = &(self->call);
-    _copy_param_to_msg(call->dest, msg, offset);
-    _copy_param_to_msg(call->path, msg, offset);
-    _copy_param_to_msg(call->interface, msg, offset);
-    _copy_param_to_msg(call->method, msg, offset);
+    _copy_param_to_msg(&(call->dest), msg, offset);
+    _copy_param_to_msg(&(call->path), msg, offset);
+    _copy_param_to_msg(&(call->interface), msg, offset);
+    _copy_param_to_msg(&(call->method), msg, offset);
 
     // firma (si hay)
     if (call->n_params) {
-        _copy_declaration_to_msg(self, call->params, msg, offset);
+        _copy_declaration_to_msg(self, msg, offset);
     }
 }
 
 
 /**
- * Copia el cuerpo al mensaje.
+ * @desc:   copia el body al mensaje.
+ * @param:  string a donde copiar, offset que indica desde donde copiar.
+ * @return: -
 */
 static void _copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
     call_t* call = &(self->call);
@@ -318,8 +348,9 @@ static void _copy_body_to_msg(dbus_client_t* self, char* msg, int* offset) {
 
 
 /**
- * Coordina la creación del mensaje procesado.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   coordina la creacion del mensaje procesado listo para enviar.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _create_msg(dbus_client_t* self) {
     char* msg = (char*) malloc(self->total_len);

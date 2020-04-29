@@ -14,7 +14,10 @@
 // De inicialización:
 
 /**
- * Llena los atributos de la estructura param con nulos/0, según corresponda.
+ * @desc:   llena los atributos de la estructura param con nulos/0, según
+ *          corresponda.
+ * @param:  puntero a param_t a inicializar.
+ * @return: -
 */
 static void _initialize_param(call_t* self, param_t* param) {
     param->data_type = 0;
@@ -26,8 +29,12 @@ static void _initialize_param(call_t* self, param_t* param) {
 // De parseo:
 
 /**
- * Parsea la línea recibida que contiene el siguiente formato por enunciado:
- * <dest> <path> <interface> <method>([<args>])
+ * @desc:   parsea la línea recibida que contiene el siguiente formato por
+ *          enunciado: <dest> <path> <interface> <method>([<args>]).
+ * @param:  el string que contiene la linea a parsear, un offset que indica
+ *          desde donde hay que parsearla, un char que será el que corte
+ *          nuestro split, y un size_t que indica hasta cuanto leer.
+ * @return: -
 */
 static void _fill_param_from_line(param_t* param, char* line, int* offset,
                                   char delimiter, size_t max_len) {
@@ -51,9 +58,11 @@ static void _fill_param_from_line(param_t* param, char* line, int* offset,
 // De parseo de los argumentos de la firma (de existir):
 
 /**
- * Cuenta la cantidad de parámetros que se van a separar en la línea
- * recibida.
- * Devuelve la cantidad de parámetros en la línea (size_t).
+ * @desc:   cuenta la cantidad de parámetros que se van a separar en la
+ *          línea recibida.
+ * @param:  linea de parametros, size_t que indica la longitud de la misma,
+ *          char que delimita nuestro split.
+ * @return: size_t indicando la cantidad de parámetros en nuestra linea.
 */
 static size_t _count_params(char* buffer, size_t len, char delimiter) {
     size_t n_params = 1;
@@ -69,8 +78,12 @@ static size_t _count_params(char* buffer, size_t len, char delimiter) {
 
 
 /**
- * Recibe una línea de parámetros separados por un delimiter, en este caso ',',
- * y los separa llenando la estructura de datos correspondiente.
+ * @desc:   recibe una línea de parámetros separados por un delimiter, y los
+ *          separa llenando la estructura de datos correspondiente.
+ * @param:  puntero a la lista de parametros a llenar, linea de parametros,
+ *          un size_t que indica la longitud de la linea, y un char que
+ *          delimita nuestro split.
+ * @return: -
 */
 static void _fill_params(param_t* params, char* buffer, size_t len,
                          char delimiter) {
@@ -100,8 +113,10 @@ static void _fill_params(param_t* params, char* buffer, size_t len,
 
 
 /**
- * Se encarga de llamar a las funciones necesarias para parsear los
- * argumentos de la firma (si existiese)
+ * @desc:   se encarga de llamar a las funciones necesarias para parsear
+ *          los argumentos de la firma (si existiese)
+ * @param:  linea de la firma a parsear, longitud, char delimitador de split.
+ * @return: -
 */
 static void _parameters_parser(call_t* self, char* buffer, size_t len,
                                char delimiter) {

@@ -19,9 +19,11 @@
 // ----------------------------------------------------------------------------
 
 /**
- * Recibe y procesa una call. Se encarga de instanciar al parser dbus_server,
- * y de coordinar el procesamiento de la misma para posteriormente enviar
- * respuesta al cliente.
+ * @desc:   recibe y procesa una call. Se encarga de instanciar al parser
+ *          dbus_server, y de coordinar el procesamiento de la misma para
+ *          posteriormente enviar respuesta al cliente.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _receive_and_process_call(server_t* self) {
     // Verificamos si viene otra call, leyendo el primer byte

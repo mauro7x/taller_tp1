@@ -20,25 +20,29 @@ typedef struct stdin_streamer {
 // ----------------------------------------------------------------------------
 
 /** CONSTRUCTOR
- * Inicializa el streamer, estableciendo los atributos necesarios.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   inicializa el streamer, estableciendo la función de callback.
+ * @param:  función de callback.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int stdin_streamer_create(stdin_streamer_t *self, callback_t callback);
 
 
 /**
- * Coordina la iteración sobre la entrada, obteniendo mediante un buffer
- * estático, las lineas de texto plano que definen las calls, separadas
- * mediante el caracter '\n', para posteriormente invocar la función callback
- * con esta línea, disparando su creación y procesamiento.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   coordina la iteración sobre la entrada, obteniendo mediante un
+ * 			buffer estático, las lineas de texto plano que definen las calls,
+ * 			separadas mediante el caracter '\n', para posteriormente invocar
+ * 			la función callback con esta línea, disparando su creación y
+ * 			procesamiento.
+ * @param:  puntero a contexto.
+ * @return: 0 si no hay errores, -1 CC.
 */
 int stdin_streamer_run(stdin_streamer_t *self, void *context);
 
 
 /** DESTRUCTOR
- * Libera los recursos utilizados.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   libera recursos utilizados.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 int stdin_streamer_destroy(stdin_streamer_t *self);
 

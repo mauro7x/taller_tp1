@@ -22,8 +22,9 @@
 // ----------------------------------------------------------------------------
 
 /**
- * Arregla el problema de TIMEWAIT.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   arregla el problema del TIMEWAIT.
+ * @param:  -
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _fix_timewait(socket_t* self) {
     int val = 1;
@@ -36,9 +37,11 @@ static int _fix_timewait(socket_t* self) {
     return 0;
 }
 
+
 /**
- * Establece el file descriptor del socket a address.
- * Devuelve 0 si no hay errores, -1 CC.
+ * @desc:   establece el file descriptor del socket a address.
+ * @param:  puntero a addrinfo_t, address a establecer como file descriptor.
+ * @return: 0 si no hay errores, -1 CC.
 */
 static int _set_fd(socket_t* self, addrinfo_t* address) {
     self->fd = socket(address->ai_family, address->ai_socktype,
@@ -139,7 +142,7 @@ int socket_accept(socket_t* self, socket_t* accepted_socket) {
 }
 
 
-int socket_connect(socket_t *self, const char* hostname, const char* port) {
+int socket_connect(socket_t *self) {
     bool connected = false;
     struct addrinfo* ptr;
 
