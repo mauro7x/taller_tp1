@@ -448,7 +448,7 @@ int dbus_client_print_server_reply(dbus_client_t* self) {
         return -1;
     }
     
-    printf("0x%04x: %s\n", self->call.id, reply);
+    printf("0x%08x: %s\n", self->call.id, reply);
 
     return 0;
 }
