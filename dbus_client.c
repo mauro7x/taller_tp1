@@ -240,7 +240,7 @@ static void _copy_uint32_checking_endianness(char* dest, int* offset,
         int_to_copy = __builtin_bswap32(int_to_copy);
     }
 
-    _copy_to_msg(dest, offset, &int_to_copy, len);                                       
+    _copy_to_msg(dest, offset, &int_to_copy, len);
 }
 
 
@@ -321,9 +321,12 @@ static void _copy_header_desc_to_msg(dbus_client_t* self, char* msg,
     _copy_c_to_msg(msg, offset, HEADER_FLAGS, 1);
     _copy_c_to_msg(msg, offset, PROTOCOL_VERSION, 1);
 
-    _copy_uint32_checking_endianness(msg, offset, &(self->body_len), sizeof(self->body_len));
-    _copy_uint32_checking_endianness(msg, offset, &(call->id), sizeof(call->id));
-    _copy_uint32_checking_endianness(msg, offset, &(self->array_len), sizeof(self->array_len));
+    _copy_uint32_checking_endianness(msg, offset, &(self->body_len),
+                                     sizeof(self->body_len));
+    _copy_uint32_checking_endianness(msg, offset, &(call->id),
+                                     sizeof(call->id));
+    _copy_uint32_checking_endianness(msg, offset, &(self->array_len),
+                                     sizeof(self->array_len));
 }
 
 
