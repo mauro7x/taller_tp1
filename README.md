@@ -168,7 +168,7 @@ método. Si el método no utiliza parámetros, no se envía. A diferencia de los
 > 1. Las funciones de más de 20 líneas requieren una justificación clara de su exensión.
 > 2. La lectura del archivo de entrada debe ser en **bloques de 32 bytes** (es decir, utilizar un buffer de lectura). No se puede trabajar con todo el contenido del archivo en memoria.
 
-## Restricciones <a name="reestricciones"></a>
+## Restricciones <a name="restricciones"></a>
 
 > La siguiente es una lista de **restricciones técnicas** exigidas de caracter **obligatorio**:
 > 1. El sistema debe desarrollarse en **ISO C (C99)**. No se puede usar macros que alteren el standard del código excepto en el “.c” de sockets.
