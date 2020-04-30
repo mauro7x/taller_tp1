@@ -19,11 +19,15 @@
     * [Cliente](#cliente)
     * [Servidor](#servidor)
     * [Protocolo D-BUS](#protocolo)
+    * [Penalizaciones](#penalizaciones)
+    * [Restricciones](#restricciones)
 3. [Resolución](#resolucion)
 
 
 
 <!-- ##################################################################### -->
+
+<hr>
 
 # Presentación del trabajo <a name="presentacion"></a>
 
@@ -114,22 +118,65 @@ ningún argumento.
 
 ## Protocolo D-BUS <a name="protocolo"></a>
 
+> El **protocolo D-Bus** es parte en texto plano (autenticación) y parte en binario (mensajes). En este trabajo, nos centraremos en los **mensajes de llamadas a procedimientos remotos** únicamente.
+>
+> Un **mensaje** consiste de una **cabecera** (header) y **cuerpo** (body). La cabecera es un **conjunto de valores binarios con un formato fijo**. En el header se incluyen varios parámetros que definen el mensaje a enviar. En
+el **body** se envían los **argumentos de los métodos** que ejecutamos.
+
+### Formato del header
+
+> El formato de la cabecera es:
+>
+> `BYTE, BYTE, BYTE, BYTE, UINT32, UINT32, ARRAY of STRUCT of (BYTE,VARIANT)`
+>
+> La **longitud de la cabecera debe ser múltiplo de 8**, en caso de no serlo, se rellenan los bytes faltantes con **ceros**. El cuerpo no posee esta restricción. Los parámetros ubicados en el array de parámetros también tienen que tener longitud múltiplo de 8.
+>
+> - **1er byte**: 'l' para little-endian, 'b' para big-endian. Utilizaremos 'l' **siempre**.
+> - **2do byte**: tipo de mensaje, utilizaremos el valor **0x01 siempre**, que es el valor para llamadas a métodos.
+> - **3er byte**: flags varios, utilizaremos **0x0 siempre**.
+> - **4to byte**: versión del protocolo, utilizaremos **0x01 siempre**.
+> - **1er entero**: **longitud** en bytes del **cuerpo**​.
+> - **2do entero**: un número serie para identificar el mensaje. Utilizaremos un valor incremental por cada mensaje enviado por el cliente. El primer mensaje tendrá el número 0x0001, el segundo 0x0002, etc.
+> Por último un **array de longitud variable** con los parámetros necesarios según el tipo de mensaje. Posee el siguiente formato:
+>   - Un entero **UINT32** con la longitud del array.
+>   - Por cada parámetro:
+>       - Un byte indicando el *tipo de parámetro*.
+>       - Un byte en 1.
+>       - Un byte indicando el *tipo de dato* (utilizaremos **sólo strings** o equivalentes).
+>       - *Longitud del dato* en bytes. La longitud no toma en cuenta el padding del último elemento.
+> 
+> Los parámetros se identifican por los siguientes tipos:
+> - **Ruta del objeto:** se identifica por el tipo 1, y su tipo de dato es "o" (a fines prácticos es un string).
+> - **Destino:** se identifica por el tipo 6, y su tipo de dato es "s" (string UTF-8).
+> - **Interfaz:** se identifica por el tipo 2, y su tipo de dato es "s".
+> - **Método:** se identifica por el tipo 3 y su tipo de dato es "s".
+> - **Firma:** opcional, se identifica por el tipo 9 y su tipo de dato es "g" (a fines prácticos también es un string). Los métodos invocados sólo tendrán argumentos de tipo string, por lo que la firma será una cadena formada por caracteres 's' y de longitud igual a la cantidad de argumentos utilizados por el
+método. Si el método no utiliza parámetros, no se envía. A diferencia de los otros tipos, no es seguido de un string.
+
+
+### Formato del body
+
+> Una vez leída la cabecera, si la misma posee una firma tenemos que **leer el cuerpo** con los **parámetros** que utiliza. Como mencionamos previamente, **sólo utilizaremos strings**. Al igual que en la cabecera los strings **deben terminar en '\0’**.
+>
+> El formato será, por cada parámetro:
+> - Un **UINT32** con la longitud del parámetro, la cadena de bytes correspondientes, y el **\0**.
+
+
+## Penalizaciones <a name="penalizaciones"></a>
+
+> La siguiente es una lista de **restricciones técnicas** exigidas **no obligatorias** para la aprobación:
+> 1. Las funciones de más de 20 líneas requieren una justificación clara de su exensión.
+> 2. La lectura del archivo de entrada debe ser en **bloques de 32 bytes** (es decir, utilizar un buffer de lectura). No se puede trabajar con todo el contenido del archivo en memoria.
+
+## Restricciones <a name="reestricciones"></a>
+
+> La siguiente es una lista de **restricciones técnicas** exigidas de caracter **obligatorio**:
+> 1. El sistema debe desarrollarse en **ISO C (C99)**. No se puede usar macros que alteren el standard del código excepto en el “.c” de sockets.
+> 2. Está prohibido el uso de **variables y funciones globales**. La función ​ main no puede contener lógica del negocio, solamente debe servir como punto de entrada del flujo del programa.
+> 3. El informe debe contener al menos un **diagrama** que represente alguna parte del diseño. No hace falta que sea UML, pero sí que sea **descriptivo**.
+> 4. **El protocolo** de comunicación es **obligatorio**, no sugerido.
+
+<hr>
+
 # Resolución <a name="resolucion"></a>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
