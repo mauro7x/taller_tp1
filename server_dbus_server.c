@@ -409,7 +409,7 @@ void dbus_server_print_received_call(dbus_server_t* self) {
     printf("* Id: 0x%08x\n", self->call.id);
     printf("* Destino: %s\n", self->call.dest.data);
     printf("* Path: %s\n", self->call.path.data);
-    printf("* Interface: %s\n", self->call.interface.data);
+    printf("* Interfaz: %s\n", self->call.interface.data);
     printf("* Metodo: %s\n", self->call.method.data);
 
     if (self->call.n_params) {
