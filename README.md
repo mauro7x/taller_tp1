@@ -205,8 +205,6 @@ En este contexto, y teniendo en cuenta que debíamos generar dos aplicativos ind
 |:--:| 
 | *Primeros TDAs diseñados* |
 
-
-
 ## Procesamiento de datos de entrada <a name="procesamiento"></a>
 
 Una vez que logré (con los tres TDAs diseñados hasta el momento) establecer una comunicación estable entre el `Cliente` y el `Servidor` logrando mandar mensajes y recibirlos de forma correcta, me predispuse a continuar con el trabajo, centrandome ahora en la entrada de las llamadas `Calls`.
@@ -230,6 +228,11 @@ En este punto, ya contaba con 5 TDAs con responsabilidades bien claras:
 - **Call**, encapsulando el parseo de los distintos componentes que la forman, y permitiendo el agrupamiento de los mismos;
 
 - **Stdin_Streamer**, responsable del ingreso de los datos al aplicativo `Cliente`.
+
+| ![segundas_ideas](img/segundas_ideas.png) | 
+|:--:| 
+| *Agregamos `stdin_streamer` y `call`.* |
+
 
 El flujo de mis programas, entonces, sería el siguiente:
 
@@ -262,18 +265,9 @@ Tras su implementación, pude llegar a mi diseño final, con el que me siento sa
 
 Mi diseño final consta de **7 TDAs** con **responsabilidades claras** y un acoplamiento razonable. Los mismos se muestran a continuación en el siguiente gráfico:
 
-// grafico
-
-
-Flujo de aplicativo `Cliente`:
-
-// grafico
-
-
-Flujo de aplicativo `Servidor`:
-
-// grafico
-
+| ![ideas_finales](img/ideas_finales.png) | 
+|:--:| 
+| *Diseño final* |
 
 Estoy satisfecho con el diseño final logrado, puesto que **encapsular el comportamiento propio del protocolo** en tres TDAs me permitirá en un futuro **reutilizar** los aplicativos **Cliente** y **Servidor**, simplemente definiendo un nuevo protocolo según el problema a resolver.
 
