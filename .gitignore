@@ -10,6 +10,7 @@
 *.o
 *.zip
 *.txt
+*.drawio
 
 # cpplint
 cpplint.py

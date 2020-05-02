@@ -21,8 +21,17 @@
     * [Protocolo D-BUS](#protocolo)
     * [Penalizaciones](#penalizaciones)
     * [Restricciones](#restricciones)
-3. [Resolución](#resolucion)
-
+3. [Modelo propuesto](#modelo)
+    * [Primeras ideas](#primeras_ideas)
+    * [Procesamiento de datos de entrada](#procesamiento)
+        * [Armando las *calls*](#armando)
+    * [Implementando el protocolo](#protocolo)
+    * [Diseño final](#diseno_final)
+4. [Detalles de implementación](#detalles)
+    * [Procesamiento de datos de entrada](#stdin)
+    * [Consideración del endianness](#endianness)
+    * [Códigos de retorno](#retorno)
+5. [Conclusiones](#conclusiones)
 
 
 <!-- ##################################################################### -->
@@ -178,5 +187,234 @@ método. Si el método no utiliza parámetros, no se envía. A diferencia de los
 
 <hr>
 
-# Resolución <a name="resolucion"></a>
+# Modelo propuesto <a name="modelo"></a>
+
+## Primeras ideas <a name="primeras_ideas"></a>
+
+Para resolver el trabajo planteado, se encaró el problema pensando primero en qué **TDAs** sería conveniente diseñar, para que nuestra solución sea **modular**, y al mismo tiempo intentando evitar, en la mayor medida posible, el **acoplamiento** entre los distintos TDAs diseñados.
+
+En este contexto, y teniendo en cuenta que debíamos generar dos aplicativos independientes: **cliente** y **servidor** que puedan comunicarse entre sí utilizando **sockets**, en un primer boceto pensé en los siguiente TDAS:
+
+- **Cliente**: sería el TDA que se instancia en la entrada del aplicativo `Cliente`, y sería el encargado de manejar el flujo del programa. Este TDA tendría un `socket` propio, con el que se conectaría al `servidor`.
+
+- **Servidor**: análogo al cliente, este TDA sería el que maneja el flujo del programa `Servidor`, siendo instanciado en su main. Propiamente, tendría que poseer dos `sockets`: un socket *`aceptador`*, encargo de aceptar conexiones entrantes, y otro socket *`peer`*, que sería la referencia al socket aceptado una vez que el cliente se conecte. A través del socket *`peer`* nos comunicaremos con el cliente.
+
+- **Socket**: este TDA es fundamental, pues nos permitirá encapsular los métodos necesarios para permitir la conexión Cliente-Servidor. Principalmente, el socket estará formado por un `file descriptor` que lo identifica.
+
+| ![primeras_ideas](img/primeras_ideas.png) | 
+|:--:| 
+| *Primeros TDAs diseñados* |
+
+
+
+## Procesamiento de datos de entrada <a name="procesamiento"></a>
+
+Una vez que logré (con los tres TDAs diseñados hasta el momento) establecer una comunicación estable entre el `Cliente` y el `Servidor` logrando mandar mensajes y recibirlos de forma correcta, me predispuse a continuar con el trabajo, centrandome ahora en la entrada de las llamadas `Calls`.
+
+Según mi implementación, una `call` es una **estructura de datos a llenar**, para luego ser enviada del cliente al servidor. Cada `call`, como se vio en el enunciado, está formada por distintos componentes: un `destino`, una `ruta`, una `interfaz`, y un `método`. A su vez y de manera opcional puede contar con `parámetros` si el método incluye una firma.
+
+Fue en este punto cuando decidí diseñar el TDA `call`. Su utilización me permitiría encapsular el manejo de los datos, así como el ***parseo*** de la misma, obteniendo un código más limpio y con **responsabilidades más claras**.
+
+A su vez, como se vio en el enunciado, las *calls* al cliente le pueden llegar por medio de un **archivo de entrada** o por **entrada estándar**. Para manejar esto decidí tomar una idea de la clase de presentación del trabajo práctico: la utilización de un `stdin_streamer`, un TDA cuyo principal objetivo será el de **encapsular la entrada de datos**, llamando a una función ***callback*** y pasándole la línea que contiene a la call lista para su parseo.
+
+### Armando las calls listas para el envío (client-side) <a name="armando"></a>
+
+En este punto, ya contaba con 5 TDAs con responsabilidades bien claras:
+
+- **Cliente**, manejando el flujo del programa `Cliente`, utilizando un `stdin_streamer` para recibir datos de la entrada, y armando las `calls` para luego enviarlas al `servidor`;
+
+- **Servidor**, manejando el flujo del programa `Servidor`, recibiendo las `calls` del cliente para luego imprimirlas por salida estándar;
+
+- **Socket**, encapsulando los métodos necesarios para permitir la conexión entre `Cliente` y `Servidor`;
+
+- **Call**, encapsulando el parseo de los distintos componentes que la forman, y permitiendo el agrupamiento de los mismos;
+
+- **Stdin_Streamer**, responsable del ingreso de los datos al aplicativo `Cliente`.
+
+El flujo de mis programas, entonces, sería el siguiente:
+
+- **Aplicativo Cliente:** se inicia el `socket`, y se intenta conectar al servidor utilizando el *hostname* y el *puerto* recibidos por parámetro. Una vez conectado, se le pide al `stdin_streamer` una línea conteniendo una `call`,  para parsearla y enviarla al `servidor`. Posteriormente se esperaría por una respuesta del servidor, para imprimirla y repetir pidiéndole al `stdin_streamer` otra línea. Una vez que no hay más datos de entrada, termina su ejecución liberando los recursos.
+
+- **Aplicativo Servidor:** se inicia el socket aceptador, y se espera por la conexión de un `cliente`. Una vez conectado, se lo asigna al socket `peer`, socket a través del cuál se recibirán las distintas `calls` enviadas. Cuando se recibe una `call`, se imprime por salida estándar y se envía una confirmación al `cliente`. Se repite este proceso hasta no recibir más calls, momento en el cuál se termina la ejecución.
+
+## Implementando el protocolo <a name="protocolo"></a>
+
+En este punto tenía ya un sistema funcionando que podía enviar mensajes entre **cliente** y **servidor**, leyendo los mismos desde la entrada estándar del cliente. Lo único que falta es implementar el **protocolo**.
+
+El **protocolo** es la parte más importante en todo sistema de comunicación, ya que establece las **reglas** que nos permitirán lograr la misma de forma eficiente y ordenada.
+
+Teniendo la `call` armada en el `Cliente`, ahora es momento de armar el mensaje siguiendo las reglas establecidas por el **Protocolo D-BUS**, para posteriormente ser enviado al `Servidor`. 
+
+Inmediatamente se me ocurrió que era necesario **diseñar un nuevo TDA** para **encapsular el protocolo**, permitiéndome **independizarme** del mismo en el resto del programa. También tuve en cuenta que el protocólo tiene una doble función:
+
+1. Debe actuar como un **serializador** para el `Cliente`, pues ordena la información de una cierta manera, preparando el mensaje como una cadena de bytes lista para ser enviada.
+
+2. Debe actuar como un **decodificador** para el `Servidor`, pues debe recibir la cadena de bytes previamente serializada y entenderla, decodificando la misma y dándole un sentido.
+
+Frente a esta doble tarea y para evitar que mi TDA **protocolo** tenga muchas responsabilidades, decidí diseñar dos TDAs distintos e independientes:
+
+- **dbus_cliente:** *serializador* del mensaje del lado del `Cliente`.
+- **dbus_servidor:** *decodificador* del mensaje del lado del `Servidor`.
+
+Tras su implementación, pude llegar a mi diseño final, con el que me siento satisfecho, ya que pude **encapsular comportamiento** y lograr un **acoplamiento bajo**.
+
+## Diseño final <a name="diseno_final"></a>
+
+Mi diseño final consta de **7 TDAs** con **responsabilidades claras** y un acoplamiento razonable. Los mismos se muestran a continuación en el siguiente gráfico:
+
+// grafico
+
+
+Flujo de aplicativo `Cliente`:
+
+// grafico
+
+
+Flujo de aplicativo `Servidor`:
+
+// grafico
+
+
+Estoy satisfecho con el diseño final logrado, puesto que **encapsular el comportamiento propio del protocolo** en tres TDAs me permitirá en un futuro **reutilizar** los aplicativos **Cliente** y **Servidor**, simplemente definiendo un nuevo protocolo según el problema a resolver.
+
+En las próximas secciones, mostraré cómo afronté ciertos desafíos planteados en el enunciado, y la **solución** que utilicé frente a los mismos.
+
+<hr>
+
+# Detalles de implementación <a name="detalles"></a>
+
+En esta sección detallaré las **soluciones propuestas** frente a ciertos problemas que fueron surgiendo a lo largo del desarrollo del trabajo y que considero que son de **interés**.
+
+## Procesamiento de datos de entrada <a name="stdin"></a>
+
+Si bien para procesar los datos de entrada podríamos utilizar memoria dinámica y leer todo el archivo de una sóla vez, o podríamos leer de a 1 byte hasta reconocer el fin de una línea, estas primeras ideas resultarían increíblemente ineficientes:
+
+- **Cargar todo el archivo en memoria** resulta muy ineficiente en cuanto a utilización de recursos;
+- **Leer de a 1 byte** implica llamar a la ***syscall*** `read` tantas veces como caracteres existan en la entrada de datos, y considerando que esta *syscall* es muy costosa, este *approach* se vuelve inviable.
+
+Se decide entonces, tomando la idea del enunciado, implementar una **solución compromiso**, ni un extremo ni el otro: se leerá el archivo de entrada de a **32 bytes**, utilizando para esto un *buffer* estático de **longitud fija** (*en el stack, no es necesario utilizar memoria dinámica en el heap*). Luego, **se itera** sobre este buffer estático hasta **encontrar el fin de línea** que delimita nuestras `calls`, en este caso y por enunciado, el caracter `\n`. Una vez que se la encuentra, se **envía** la call al protocolo para ser procesada y enviada.
+
+Claramente no todas las líneas serán fijas de 32 bytes generando un final feliz, tenemos que analizar los **casos bordes**:
+
+- Podría pasar por ejemplo que la línea sea de longitud **mayor a 32 bytes**, por lo que al llegar al último byte y no haber encontrado el caracter delimitador, deberemos **guardar nuestra línea parcial en memoria dinámica** y leer otros 32 bytes, para completarla. Esto puede repetirse tantas veces como sea necesario hasta tener la línea final formada.
+
+- En un caso totalmente opuesto, podría tratarse de líneas con longitud **menor a 32 bytes**, en cuyo caso podríamos tener varias líneas en los mismos 32 bytes. Este caso es más sencillo de tratar: cada vez que encontremos un caracter delimitador `\n` en el buffer, **enviaremos la línea encontrada hasta ese momento**, y usaremos variables para indicar que **la próxima línea empieza desde la posición siguiente** en nuestro buffer.
+
+El comportamiento descripto puede encontrarse en la función: **`stdin_streamer_run`**. Esta función posee más de 20 líneas de código, límite que se estableció en el enunciado, pero creo que **su extensión se justifica** con la **necesidad de cubrir** todos los **casos bordes** de este problema.
+
+## Consideración del endianness <a name="endianness"></a>
+
+Como sabemos, la forma en que los bytes se **organizan en memoria depende** de nuestra **arquitectura**. Es decir, un entero de 4 bytes no se almacenará de igual manera en todos los sistemas. Tenemos dos tipos de endianness: *little-endian* y *big-endian*.
+
+En las arquitecturas *little-endian*, se almacena el byte menos significativo en la primer dirección de memoria de nuestra variable. Por ejemplo, si definimos un entero de 4 bytes:
+
+```
+uint32_t a = 1;
+```
+
+En la dirección de a, `&a`, encontraremos los bytes en el siguiente órden: |1|0|0|0|.
+
+En cambio, este mismo código corriendo en una arquitectura *big-endian*, almacenaría los bytes la siguiente manera: |0|0|0|1|.
+
+Frente a esta problemática se hace **necesario** en todo protocolo de comunicación **establecer el endianness** a utilizar. En este caso por enunciado se utiliza *little-endian*, por lo que los mensajes deberán ser enviados organizando los bytes según esta convención.
+
+Para asegurarme de que cuando escriba un entero en el mensaje el mismo se escriba en *little-endian*, utilicé dos funciones auxiliares:
+- Una función que me permite **conocer el endianness** de la arquitectura actual;
+- Una función built-in de C que permite realizar un ***swap*** de los bytes de un entero.
+
+La primera funciona de manera muy simple *(la idea fue obtenida de StackOverflow, ya que se me habían ocurrido maneras más complicadas de chequear el endianness y esta forma me pareció óptima)*. La función es la siguente:
+
+```
+static int _i_am_big_endian() {   
+    int n = 1;
+    if (*(char *)&n == 1) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+
+file: client_dbus_client.c
+```
+
+La idea es la siguiente: establecemos una variable entera inicializada en `1`, y luego comparamos lo que hay en **su primer byte** con una **constante = 1**, haciendo uso de lo que expliqué anteriormente. Si estamos en *big-endian*, el primer byte será 0, mientras que si estamos en *little-endian*, será 1.
+
+A continuación muestro como ejemplo el **uso de esta función** a la hora de escribir enteros en el mensaje:
+
+```
+static void _copy_uint32_checking_endianness(char* dest, int* offset,
+                                             uint32_t* src, size_t len) {
+    uint32_t int_to_copy = *src;
+
+    if (_i_am_big_endian()) {
+        int_to_copy = __builtin_bswap32(int_to_copy);
+    }
+
+    _copy_to_msg(dest, offset, &int_to_copy, len);
+}
+
+
+file: client_dbus_client.c
+```
+
+Lo que hacemos es **chequear la arquitectura** utilizando la función previamente explicada, y en caso de estar en *big-endian* **invertimos los bytes**. Es importante aclarar que **no modificamos la variable original**, ya que en la estructura de datos las variables deben permanecer legibles por la arquitectura actual. Si yo hubiese invertido los bytes directamente desde `uint32_t* src` y mi programa luego hubiese querido imprimir dicho valor, hubiese impreso el valor inverso. O peor aún, si hubiese querido realizar un `malloc` por dicho valor de memoria, tendríamos problemas.
+
+## Códigos de retorno <a name="retorno"></a>
+
+Si bien no era solicitado por el enunciado, decidí utilizar **códigos de retorno** específicos para tener mayor información ante un error en la ejecución. Los mismos los detallo a continuación:
+
+- Códigos de retorno en **`Cliente`**:
+
+    | Código de retorno | Descripción | 
+    |-------------------|-------------|
+    | 1: *USAGE_ERROR* | No se recibieron los parámetros esperados |
+    | 2: *CREATE_ERROR* | Ocurrió un error al instanciar al cliente |
+    | 3: *INPUT_FILE_ERROR* | El archivo de entrada no existe o no se pudo abrir |
+    | 4: *CONNECT_ERROR* | No se pudo conectar con el servidor |
+    | 5: *SEND_ERROR* | Ocurrió un error en el envío del mensaje |
+    | 6: *SHUTDOWN_ERROR* | Ocurrió un error al intentar apagar el cliente|
+    | 7: *DESTROY_ERROR* | Ocurrió un error al intentar liberar los recursos utilizados |
+
+- Códigos de retorno en **`Servidor`**:
+
+    | Código de retorno | Descripción | 
+    |-------------------|-------------|
+    | 1: *USAGE_ERROR* | No se recibieron los parámetros esperados |
+    | 2: *CREATE_ERROR* | Ocurrió un error al instanciar al servidor |
+    | 3: *OPEN_ERROR* | No se pudo abrir el servidor a la escucha de conexiones entrantes |
+    | 4: *ACCEPT_ERROR* | No se pudo aceptar la conexión entrante |
+    | 5: *RECEIVE_ERROR* | Ocurrió un error en la recepción del mensaje |
+    | 6: *SHUTDOWN_ERROR* | Ocurrió un error al intentar apagar el servidor |
+    | 7: *DESTROY_ERROR* | Ocurrió un error al intentar liberar los recursos utilizados |
+
+<hr>
+
+# Conclusiones <a name="conclusiones"></a>
+
+Esta fue la primera vez que implementé un aplicativo **Cliente-Servidor**, así como un protocolo. Antes de este trabajo, no sabía bien lo que era un `socket`, ni mucho menos qué era un `protocolo TCP`. Me parecieron conceptos muy interesantes, y me divertí mucho armando estos aplicativos.
+
+Si bien soy consciente de que **el código podría haber sido más optimizado**, refactorizando nuevamente y creando nuevos TDAs para **encapsular aún más** el comportamiento, estoy satisfecho con el trabajo realizado ya que no sólo consistió en sentarse a escribir código, sino que también incluyó muchas horas de **investigación** y de **aprendizaje** sobre el tema.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
