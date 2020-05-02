@@ -265,9 +265,13 @@ Tras su implementación, pude llegar a mi diseño final, con el que me siento sa
 
 Mi diseño final consta de **7 TDAs** con **responsabilidades claras** y un acoplamiento razonable. Los mismos se muestran a continuación en el siguiente gráfico:
 
+<center>
+
 | ![ideas_finales](img/ideas_finales.png) | 
 |:--:| 
 | *Diseño final* |
+
+</center>
 
 Estoy satisfecho con el diseño final logrado, puesto que **encapsular el comportamiento propio del protocolo** en tres TDAs me permitirá en un futuro **reutilizar** los aplicativos **Cliente** y **Servidor**, simplemente definiendo un nuevo protocolo según el problema a resolver.
 
