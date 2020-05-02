@@ -64,15 +64,7 @@ int client_send_call(void* context, char* buffer, size_t len) {
     client_t* self = (client_t*) context;
     dbus_client_t dbus_client;
     dbus_client_create(&dbus_client, &(self->socket));
-
-    // Procesar la call recibida
     dbus_client_fill(&dbus_client, buffer, len, (self->next_msg_id)++);
-
-    /*
-    for (int i = 0; i < dbus_client.total_len; i++) {
-        printf("msg[%i]: %d\n", i, dbus_client.msg[i]);
-    }
-    */
 
     // Enviar la call
     if (dbus_client_send_call(&dbus_client)) {
